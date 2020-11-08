@@ -1,0 +1,1 @@
+Keep this folder if running the R script. The script expects this folder to exist.
