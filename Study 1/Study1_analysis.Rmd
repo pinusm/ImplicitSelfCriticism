@@ -1,0 +1,340 @@
+---
+title: "The Self Criticism /IAT – Validation of an Indirect Measure of Self-Criticism"
+shorttitle: "Study 1 - Study Summary"
+author: 
+  - name:  Michael Pinus
+    affiliation: 1
+    corresponding: no    # Define only one corresponding author
+    department: "Department Psychology"
+    address: "Department Psychology, Ben-Gurion University in the Negev, Israel"
+    email: "pinusm@post.bgu.ac.il"
+  - name:  Golan Shahar
+    affiliation: 1
+    corresponding: no    # Define only one corresponding author
+    department:
+    address: "Department Psychology, Ben-Gurion University in the Negev, Israel"
+    email: "pinusm@post.bgu.ac.il"
+  - name:  Yoav Bar-Anan
+    affiliation: 1
+    corresponding: no    # Define only one corresponding author
+    department:
+    address: "Department Psychology, Ben-Gurion University in the Negev, Israel"
+    email: "pinusm@post.bgu.ac.il"
+affiliation:
+  - id: 1
+    institution: "Ben-Gurion University in the Negev"
+#abstract: |
+  
+note: |  
+  
+  This document was created in Rmarkdown using `papaja` https://github.com/crsh/papaja.
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : yes
+mask              : no
+draft             : yes
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_word
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+includePrev = T
+knitr::opts_chunk$set(echo = F,
+                      tidy = "styler",
+                      cache = TRUE)
+
+suppressPackageStartupMessages({
+  library(magrittr) # A Forward-Pipe Operator for R
+  library(lubridate) # Make Dealing with Dates a Little Easier
+  library(tidyverse) # Easily Install and Load the 'Tidyverse'
+  library(conflicted) # An Alternative Conflict Resolution Strategy
+  library(Mmisc) # Some Helper Functions for Michael's Code
+  library(RColorBrewer) # ColorBrewer Palettes
+  library(BayesFactor) # Computation of Bayes Factors for Common Designs
+  library(parameters) # Processing of Model Parameters
+  library(ggpubr) # 'ggplot2' Based Publication Ready Plots
+  library(patchwork) # The Composer of Plots
+  library(psych)
+  library(stargazer) # Well-Formatted Regression and Summary Statistics Tables
+  library(see) # Visualisation Toolbox for 'easystats' and Extra Geoms, Themes and Color Palettes for 'ggplot2'
+  library(papaja) # Prepare reproducible APA journal articles with R Markdown
+  library(interactions)
+  library(corx)
+  library(effectsize)
+  library(jtools)
+  library(lavaan)
+  library(lme4)
+  library(cocron)
+})
+
+options(digits = 3)
+conflicted::conflict_prefer("filter", "dplyr", quiet = T)
+conflicted::conflict_prefer("select", "dplyr", quiet = T)
+```
+
+
+```{r, include=includePrev}
+allds_item <- fst::read_fst("data/allds_item.fst") %>% 
+  mutate(implicit = IAT,
+         IAT = ifelse(implicitType == "iat",implicit,NA),
+         qIAT = ifelse(implicitType == "qIAT",implicit,NA))
+allds <- fst::read_fst("data/allds.fst") %>% 
+  mutate(implicit = IAT,
+         IAT = ifelse(implicitType == "iat",implicit,NA),
+         qIAT = ifelse(implicitType == "qIAT",implicit,NA))
+```
+
+
+```{r, include=includePrev}
+## Participants 
+completedPs <- allds %>% filter(!is.na(completion_secs)) %>% nrow()
+totalPs <-  allds %>% filter(!is.na(total_secs)) %>% nrow()
+completedPsPercent <-  round(100*completedPs/totalPs)
+completedPsFemale <-  (allds %>% filter(!is.na(completion_secs)) %$% table(sex))[[1]] %>% round(2)
+completedPsFemalePercent <-  (allds %>% filter(!is.na(completion_secs)) %$% table(sex) %>% prop.table())[[1]] %>% round(2)
+# count females in total sample
+PsFemale <- (allds %>% filter(!is.na(total_secs)) %$% table(sex))[[1]] %>% round(2)
+PsFemalePercent <-  (allds %>% filter(!is.na(total_secs)) %$% table(sex) %>% prop.table())[[1]] %>% round(2) * 100
+# get age of all sample
+describe_distribution(allds %>% filter(!is.na(total_secs)) %>% pull(age))
+# get age of completed sample
+describe_distribution(allds %>% filter(!is.na(completion_secs)) %>% pull(age))
+```
+
+
+
+```{r, results='asis', include=includePrev}
+## Questionnaire Data 
+describe_distribution(allds %>% select(`SC-IAT` = IAT,
+                                       `SC-qIAT` = qIAT,
+                                       `DEQ-SC6` = deq6,
+                                       `CES-Db` = cesd4,
+                                       `RSES`= rses,
+                                       `SDS` = sds
+                                       )) %>%
+        mutate(across(where(is.numeric),~round(.x,2))) %>% 
+        select(-n,-n_Missing) %>% 
+        apa_table(caption = "Descriptives") %>%
+        {.}
+```
+
+```{r rrt data ttest, echo = FALSE, include=includePrev}
+D.t.test.iat <- t.test(allds$IAT,mu=0)
+D.t.test.iat %>% parameters()
+sd(allds$IAT, na.rm = T)
+d <- t_to_d(D.t.test.iat$statistic, D.t.test.iat$parameter) %>% round(2)
+d$d
+interpret_d(d$d)
+
+D.t.test.qiat <- t.test(allds$qIAT,mu=0)
+D.t.test.qiat %>% parameters()
+sd(allds$qIAT, na.rm = T)
+d <- t_to_d(D.t.test.qiat$statistic, D.t.test.qiat$parameter) %>% round(2)
+d$d
+interpret_d(d$d)
+
+D.t.test.iatQiat <- t.test(allds$IAT,allds$qIAT)
+D.t.test.iatQiat %>% parameters()
+d <- t_to_d(D.t.test.iatQiat$statistic, D.t.test.iatQiat$parameter) %>% round(2)
+d$d
+interpret_d(d$d)
+```
+
+```{r}
+deq6_abovemid <- t.test(allds$deq6,mu=2.5)
+deq6_abovemid %>% parameters() 
+sd(allds$deq6, na.rm = T)
+d <- t_to_d(deq6_abovemid$statistic, deq6_abovemid$parameter) %>% round(2)
+d$d
+interpret_d(d$d)
+```
+
+
+```{r, results='asis', include=includePrev}
+## Correlation Analyses
+corx(allds %>% select(`SC-IAT` = IAT,
+                      `SC-qIAT` = qIAT,
+                      `DEQ-SC6` = deq6,
+                      `CES-Db` = cesd4,
+                      `RSES`= rses,
+                      `SDS` = sds
+    ),
+  triangle = "lower",
+  stars = c(0.05, 0.01, 0.001)) %>%
+  extract2("apa") %>%
+  papaja::apa_table(caption = "Correlations of Questionnaire Scores",
+                    note = "* p < 0.05; ** p < 0.01; *** p < 0.001",
+                    escape = F) %>%
+  {.} 
+## this errors out because there are no observations for the IAT-qIAT correlateion. this is a between-design, so this is expected.
+```
+
+
+```{r, include=includePrev}
+## Reliabiliy Analyses
+
+rsesQs <- c("rsesQ01" , "rsesQ03" , "rsesQ04" , "rsesQ07" , "rsesQ10" , "rsesQ02r" , "rsesQ05r" , "rsesQ06r" , "rsesQ08r" , "rsesQ09r")
+deqQs <- c("deqQ01" , "deqQ02" , "deqQ03" , "deqQ04" , "deqQ05" , "deqQ06")
+sdsQs <- c("sdsQ1r" , "sdsQ2r" , "sdsQ3r" , "sdsQ4" , "sdsQ5" , "sdsQ6r", "sdsQ7r" , "sdsQ8r" , "sdsQ9" , "sdsQ10r" , "sdsQ11r" , "sdsQ12r", "sdsQ13" , "sdsQ14r" , "sdsQ15" , "sdsQ16" )
+cesdQs4 <- c("cesdQ01" , "cesdQ02" , "cesdQ03" , "cesdQ04")
+cesdQs4alt <- c("cesdQ01" , "cesdQ02" , "cesdQ05" , "cesdQ04")
+IATQs <- c("iatmod0" , "iatmod1" , "iatmod2")
+qIATQs <- c("qiatmod0" , "qiatmod1" , "qiatmod2")
+
+
+qIATQs_cron <- round(psych::alpha(allds_item %>% select(all_of(qIATQs)))$total$raw_alpha, 2)
+IATQs_cron <- round(psych::alpha(allds_item %>% select(all_of(IATQs)))$total$raw_alpha, 2)
+rsesQs_cron <- round(psych::alpha(allds_item %>% select(all_of(rsesQs)))$total$raw_alpha, 2)
+deqQs_cron <- round(psych::alpha(allds_item %>% select(all_of(deqQs)))$total$raw_alpha, 2)
+sdsQs_cron <- round(psych::alpha(allds_item %>% select(all_of(sdsQs)))$total$raw_alpha, 2)
+cesdQs4alt_cron <- round(psych::alpha(allds_item %>% select(all_of(cesdQs4alt)))$total$raw_alpha, 2)
+cesdQs4_cron <- round(psych::alpha(allds_item %>% select(all_of(cesdQs4)))$total$raw_alpha, 2)
+
+```
+
+```{r, results='asis', include=includePrev}
+# IC table
+tribble(~measure,~`Cronbach\'s Alpha`,
+        "SC-IAT",IATQs_cron,
+        "SC-qIAT",qIATQs_cron,
+        "DEQ-SC6",deqQs_cron,
+        "CES-Db",cesdQs4alt_cron,
+        "RSES",rsesQs_cron,
+        "SDS",sdsQs_cron
+        
+        ) %>% 
+    papaja::apa_table(caption = "Internal Consistency and test-retest reliability",
+                    escape = F)
+
+```
+
+```{r}
+allds_item %>% select(all_of(qIATQs)) %>% omit.na() %>% nrow()
+allds_item %>% select(all_of(IATQs)) %>% omit.na() %>% nrow()
+cocron::cocron.two.coefficients(alpha = c(.78,.86),n = c(478,317))
+```
+
+
+```{r}
+deq6_abovemid <- t.test(allds$deq6,mu=2.5)
+deq6_abovemid %>% parameters() 
+sd(allds$deq6, na.rm = T)
+d <- t_to_d(deq6_abovemid$statistic, deq6_abovemid$parameter) %>% round(2)
+d$d
+interpret_d(d$d)
+```
+
+```{r}
+# this give df, if I need N, I should add 2. 469+2 == 471 == allds %>% select(IAT, deq6) %>% omit.na() %>% nrow()
+allds %$% cor.test(IAT , deq6, use = "complete") %>% parameters()  
+allds %$% cor.test(qIAT , deq6, use = "complete") %>% parameters()  
+
+cocor::cocor.indep.groups(r1.jk = .36, r2.hm = .16, n1 = 323, n2 = 471,
+                          var.labels = c("deq6","qIAT","deq6","IAT"))
+
+allds %$% cor.test(IAT , cesd4alt, use = "complete") %>% parameters()  
+allds %$% cor.test(qIAT , cesd4alt, use = "complete") %>% parameters()  
+
+cocor::cocor.indep.groups(r1.jk = .30, r2.hm = .11, n1 = 315, n2 = 465,
+                          var.labels = c("cesd4","qIAT","cesd4","IAT"))
+
+allds %$% cor.test(IAT , rses, use = "complete") %>% parameters()  
+allds %$% cor.test(qIAT , rses, use = "complete") %>% parameters()  
+
+cocor::cocor.indep.groups(r1.jk = -.37, r2.hm = -.19, n1 = 321, n2 = 472,
+                          var.labels = c("rses","qIAT","rses","IAT"))
+
+allds %$% cor.test(IAT , sds, use = "complete") %>% parameters()  
+allds %$% cor.test(qIAT , sds, use = "complete") %>% parameters()  
+
+cocor::cocor.indep.groups(r1.jk = .04, r2.hm = -.09, n1 = 317, n2 = 465,
+                          var.labels = c("sds","qIAT","sds","IAT"))
+
+# discriminant
+allds %$% cor.test(qIAT , deq6, use = "complete") %>% parameters()  
+allds %$% cor.test(qIAT , rses, use = "complete") %>% parameters()  
+
+cocor::cocor.indep.groups(r1.jk = .36, r2.hm = -.37, n1 = 323, n2 = 321,
+                          var.labels = c("sds","qIAT","sds","IAT"))
+
+allds %$% psych::correct.cor(cor(matrix(c(IAT,rses),ncol = 2), use = "pairwise"),c(IATQs_cron,rsesQs_cron))[1,2]
+allds %$% psych::correct.cor(cor(matrix(c(qIAT,rses),ncol = 2), use = "pairwise"),c(qIATQs_cron,rsesQs_cron))[1,2]
+
+```
+
+```{r}
+# social desirabilty
+allds %$% cor.test(deq6 , sds, use = "complete") %>% parameters()  
+allds %$% cor.test(qIAT , sds, use = "complete") %>% parameters()  
+
+cocor::cocor.indep.groups(r1.jk = .04, r2.hm = -.16, n1 = 317, n2 = 769,
+                          var.labels = c("sds","qIAT","sds","deq6"))
+
+allds %$% cor.test(deq6 , sds, use = "complete") %>% parameters()  
+allds %$% cor.test(IAT , sds, use = "complete") %>% parameters()  
+
+cocor::cocor.indep.groups(r1.jk = -.09, r2.hm = -.16, n1 = 465, n2 = 769,
+                          var.labels = c("sds","IAT","sds","deq6"))
+
+
+```
+
+```{r, include=F, eval=F}
+allds_computed_cen <- allds %>% as_tibble() %>%
+  select(IAT,
+         qIAT,
+         deq6,
+         cesd4alt,
+         rses,
+         sds
+  ) %>% 
+  mutate(across(where(is.numeric),  ~ scale(.x, scale = F, center = T)))
+
+allds_computed_scl <- allds_computed_cen %>% 
+  mutate(across(where(is.numeric),~as.numeric(scale(.x, scale = T,center = T))))
+
+```
+
+
+
+```{r, include=F, eval=F}
+#these create excel files with the tables 
+fit1 <- lm(data = allds_computed_scl , cesd4alt ~ deq6 * qIAT) 
+fit2 <- lm(data = allds_computed_scl , cesd4alt ~ deq6 * IAT) 
+
+parameters(fit1)
+parameters(fit2)
+
+export_summs(fit1,fit2,
+                     model.names = c("SC-qIAT", "SC-IAT")
+                     , to.file = "xlsx", file.name = "tables/lm_DEQ-SC6_IASB.xlsx"
+                     )
+
+```
+
+```{r, eval=F}
+p1 <- interact_plot(fit2,modx = "deq6",pred = "IAT", x.label = "SC-IAT (z Score)" , y.label = "CES-Db (z Score)", legend.main = "DEQ-SC6", colors = "Greys", main.title = "Simple Slopes", modx.values = "plus-minus") + papaja::theme_apa() + ylim(c(-2,2))
+simslp <- sim_slopes(fit2,modx = "deq6",pred = "IAT", jnplot = T, sig.color = "black", insig.color = "grey", title = "Johnson-Neyman", modx.values = "plus-minus")
+s1 <- simslp$jnplot + labs(y = "Slope of SC-IAT" , x = "DEQ-SC6 (z Score)") + papaja::theme_apa() + theme(legend.title = element_blank())
+simslp$slopes
+
+ggsave(p1 + s1 + plot_annotation(tag_levels = 'A') + plot_layout(design = "AA##BB") , filename = "figures/figure1.png", width = 9.8, height = 5.2, units = "in")
+```
+
+
+
+```{r, include=F, eval=F}
+#social desirability moderation
+
+#these create excel files with the tables 
+fit1 <- lm(data = allds_computed_scl ,  qIAT ~ sds * deq6) 
+fit2 <- lm(data = allds_computed_scl ,  IAT ~ sds * deq6) 
+
+parameters(fit1)
+parameters(fit2)
+```
