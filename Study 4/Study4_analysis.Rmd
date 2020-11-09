@@ -1,0 +1,686 @@
+---
+title: "The Self Criticism Relational Response Task (RRT-SC) – Validation of an Indirect Measure of Self-Criticism"
+shorttitle: "RRTSC2 - Study Summary"
+author: 
+  - name:  Michael Pinus
+    affiliation: 1
+    corresponding: no    # Define only one corresponding author
+    department: "Department Psychology"
+    address: "Department Psychology, Ben-Gurion University in the Negev, Israel"
+    email: "pinusm@post.bgu.ac.il"
+  - name:  Golan Shahar
+    affiliation: 1
+    corresponding: no    # Define only one corresponding author
+    department:
+    address: "Department Psychology, Ben-Gurion University in the Negev, Israel"
+    email: "pinusm@post.bgu.ac.il"
+  - name:  Yoav Bar-Anan
+    affiliation: 1
+    corresponding: no    # Define only one corresponding author
+    department:
+    address: "Department Psychology, Ben-Gurion University in the Negev, Israel"
+    email: "pinusm@post.bgu.ac.il"
+affiliation:
+  - id: 1
+    institution: "Ben-Gurion University in the Negev"
+#abstract: |
+  
+note: |  
+  
+  This document was created in Rmarkdown using `papaja` https://github.com/crsh/papaja.
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : yes
+mask              : no
+draft             : yes
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_word
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+includePrev = T
+knitr::opts_chunk$set(echo = F,
+                      tidy = "styler",
+                      cache = TRUE)
+
+suppressPackageStartupMessages({
+  library(magrittr) # A Forward-Pipe Operator for R
+  library(lubridate) # Make Dealing with Dates a Little Easier
+  library(tidyverse) # Easily Install and Load the 'Tidyverse'
+  library(conflicted) # An Alternative Conflict Resolution Strategy
+  library(Mmisc) # Some Helper Functions for Michael's Code
+  library(RColorBrewer) # ColorBrewer Palettes
+  library(BayesFactor) # Computation of Bayes Factors for Common Designs
+  library(parameters) # Processing of Model Parameters
+  library(ggpubr) # 'ggplot2' Based Publication Ready Plots
+  library(patchwork) # The Composer of Plots
+  library(psych)
+  library(stargazer) # Well-Formatted Regression and Summary Statistics Tables
+  library(see) # Visualisation Toolbox for 'easystats' and Extra Geoms, Themes and Color Palettes for 'ggplot2'
+  library(papaja) # Prepare reproducible APA journal articles with R Markdown
+  library(interactions)
+  library(corx)
+  library(effectsize)
+  library(jtools)
+  library(lavaan)
+})
+
+options(digits = 3)
+conflicted::conflict_prefer("filter", "dplyr", quiet = T)
+conflicted::conflict_prefer("select", "dplyr", quiet = T)
+```
+
+
+```{r, include=includePrev}
+allds_item <- fst::read_fst("data/allds_item.fst")
+allds <- fst::read_fst("data/allds.fst")
+latenciesT1 <- fst::read_fst("data/latenciesT1.fst")
+latenciesT2 <- fst::read_fst("data/latenciesT2.fst")
+blocksT1 <- fst::read_fst("data/blocksT1.fst")
+blocksT2 <- fst::read_fst("data/blocksT2.fst")
+counterrT1 <- fst::read_fst("data/counterrT1.fst")
+counterrT2 <- fst::read_fst("data/counterrT2.fst")
+counterrSortedT1 <- fst::read_fst("data/counterrSortedT1.fst")
+counterrSortedT2 <- fst::read_fst("data/counterrSortedT2.fst")
+mouse.Qs.itemT1 <- fst::read_fst("data/mouse.Qs.itemT1.fst")
+mouse.Qs.itemT2 <- fst::read_fst("data/mouse.Qs.itemT2.fst")
+```
+
+ [OSF](https://osf.io/62qht/)
+
+```{r}
+# are the participants removed in T1 due to high error rates the same ones removed in T2?
+allerr <- bind_rows(
+  T1 = counterrSortedT1,
+  T2 = counterrSortedT2,
+  .id = "batch")
+
+allerr %>% filter(subject_nr %in% c(counterrSortedT1 %>% filter(tooManyErrors2.5sd) %>% pull(subject_nr),counterrSortedT2 %>% filter(tooManyErrors2.5sd) %>% pull(subject_nr))) %>% arrange(subject_nr) %>% 
+  pivot_wider(id_cols = subject_nr, names_from = batch, values_from = tooManyErrors2.5sd) %>% filter(T1 & T2)
+# the participants removed in T1 due to high error rates are not the same ones removed in T2.
+```
+
+
+```{r, include=includePrev}
+## Participants 
+completedPs <- allds %>% filter(!is.na(RRTt2)) %>% nrow()
+totalPs <-  allds %>% filter(!is.na(RRTt1)) %>% nrow()
+completedPsPercent <-  round(100*completedPs/totalPs)
+completedPsFemale <-  (allds %>% filter(!is.na(RRTt2)) %$% table(female))[[2]] %>% round(2) * 100
+completedPsFemalePercent <-  (allds %>% filter(!is.na(RRTt2)) %$% table(female) %>% prop.table())[[2]] %>% round(2)
+# count females in total sample
+PsFemale <- (allds %>% filter(!is.na(RRTt1)) %$% table(female))[[2]] %>% round(2)
+PsFemalePercent <-  (allds %>% filter(!is.na(RRTt1)) %$% table(female) %>% prop.table())[[2]] %>% round(2) * 100
+# get age of all sample
+describe_distribution(allds %>% filter(!is.na(RRTt1)) %>% pull(age))
+# get age of completed sample
+describe_distribution(allds %>% filter(!is.na(RRTt2)) %>% pull(age))
+
+
+```
+
+
+
+```{r, results='asis', include=includePrev}
+## Questionnaire Data 
+describe_distribution(allds %>% select(`SC-RRT t1` = RRTt1,
+                                       `SC-RRT t2` = RRTt2, 
+                                       `BSI General` = BSI.general, 
+                                       `BSI Depression` = BSI.Depression, 
+                                       CESD = cesd,
+                                       `DEQ-SC6 t1` = deq6T1, 
+                                       `DEQ-SC6 t2` = deq6T2, 
+                                       `FSCRS HS t1` = fscrsHST1, 
+                                       `FSCRS HS t2` = fscrsHST2, 
+                                       `FSCRS IS t1` = fscrsIST1, 
+                                       `FSCRS IS t2` = fscrsIST2, 
+                                       `FSCRS RS t1` = fscrsRST1, 
+                                       `FSCRS RS t2` = fscrsRST2, 
+                                       `RSES t1`= rsesT1,
+                                       `RSES t2`= rsesT2,
+                                       melamed,
+                                       DERS.global
+                                       )) %>%
+        mutate(across(where(is.numeric),~round(.x,2))) %>% 
+        select(-n,-n_Missing) %>% 
+        apa_table(caption = "Descriptives for the questionnaires") %>%
+        {.}
+```
+
+```{r rrt data ttest, echo = FALSE, include=includePrev}
+D.t.test.t1 <- t.test(allds$RRTt1,mu=0)
+D.t.test.t1 %>% parameters()
+t_to_d(D.t.test.t1$statistic, D.t.test.t1$parameter)
+sd(allds$RRTt1, na.rm = T)
+
+D.t.test.t2 <- t.test(allds$RRTt2,mu=0)
+D.t.test.t2 %>% parameters()
+t_to_d(D.t.test.t2$statistic, D.t.test.t2$parameter)
+sd(allds$RRTt2, na.rm = T)
+
+D.t.test.t12 <- t.test(allds$RRTt2,allds$RRTt1, paired = T)
+D.t.test.t12 %>% parameters()
+t_to_d(D.t.test.t12$statistic, D.t.test.t12$parameter)
+
+```
+
+```{r, include=includePrev}
+#mean latencies and error rates in blue and orange trials
+
+latenciesT1 %>% 
+  filter(blockno %in% c(3,4,6,7)) %>% 
+  select(subject_nr ,trial_latency, stim_color, err) %>%
+  group_by(subject_nr, stim_color) %>% 
+  summarise(meanRT = mean(trial_latency), meanErr = mean(err)) %>% 
+  group_by(stim_color) %>% 
+  summarise(meanRT2 = mean(meanRT), sdRT = sd(meanRT, na.rm = T),
+            meanErr2 = mean(meanErr), sdErr = sd(meanErr, na.rm = T)) %>% 
+  mutate(across(where(is.numeric),round,2))
+
+latenciesT2 %>% 
+  filter(blockno %in% c(3,4,6,7)) %>% 
+  select(subject_nr ,trial_latency, stim_color, err) %>%
+  group_by(subject_nr, stim_color) %>% 
+  summarise(meanRT = mean(trial_latency), meanErr = mean(err)) %>% 
+  group_by(stim_color) %>% 
+  summarise(meanRT2 = mean(meanRT), sdRT = sd(meanRT, na.rm = T),
+            meanErr2 = mean(meanErr), sdErr = sd(meanErr, na.rm = T)) %>% 
+  mutate(across(where(is.numeric),round,2))
+
+
+rtlmmT12 <- bind_rows(T1 = latenciesT1, T2 = latenciesT2, .id = "session") %>% 
+  filter(blockno %in% c(3,4,6,7)) %>% 
+  select(subject_nr ,trial_latency, stim_color, err, session) %>%
+  mutate(stim_color=fct_rev(stim_color)) %>% 
+  lme4::lmer(data = . , formula = trial_latency ~ stim_color + (1|subject_nr) + session)
+
+rtlmmT12 %>% report::report()
+
+rtlmmT12 %>% parameters(details = T)
+rtlmmT12 %>% parameters(details = T,standardize="refit")
+
+# with a t-test instead
+  # latencies %>% 
+  # filter(blockno %in% c(3,4,6,7)) %>% 
+  # select(subject_nr ,trial_latency, stim_color, err) %>%
+  # group_by(subject_nr, stim_color) %>% 
+  # summarise(meanRT = mean(trial_latency)) %>% 
+  # pivot_wider(names_from = stim_color, values_from = meanRT) %$% 
+  # t.test(x = blue, y = orange, paired = T) %>% 
+  #   # summary %>% 
+  # {.} %>% 
+  #   apa_print.htest()
+  
+err.glmmT12 <- bind_rows(T1 = latenciesT1, T2 = latenciesT2, .id = "session") %>% 
+  filter(blockno %in% c(3,4,6,7)) %>% 
+  select(subject_nr ,trial_latency, stim_color, err, session) %>%
+  mutate(stim_color=fct_rev(stim_color)) %>% 
+  lme4::glmer(data = . , formula = err ~ stim_color + (1|subject_nr) + session,family = binomial(link = "logit")) 
+
+err.glmmT12 %>% report::report()
+
+err.glmmT12 %>% parameters(details = T)
+err.glmmT12 %>% parameters(details = T,standardize="refit")
+
+# with a t-test instead
+  #   latencies %>% 
+  # filter(blockno %in% c(3,4,6,7)) %>% 
+  # select(subject_nr ,trial_latency, stim_color, err) %>%
+  # group_by(subject_nr, stim_color) %>% 
+  # summarise(meanErr = mean(err)) %>% 
+  # pivot_wider(names_from = stim_color, values_from = meanErr) %$% 
+  # t.test(x = blue, y = orange, paired = T) %>% 
+  #   # summary %>% 
+  # {.} %>% 
+  #   apa_print.htest()
+
+```
+
+
+
+```{r, results='asis', include=includePrev}
+## Correlation Analyses
+corx(allds %>% select(
+    `SC-RRT t1` = RRTt1,
+    `SC-RRT t2` = RRTt2, 
+    `BSI General` = BSI.general, 
+    `BSI Depression` = BSI.Depression, 
+    CESD = cesd,
+    `DEQ-SC6 t1` = deq6T1, 
+    `DEQ-SC6 t2` = deq6T2, 
+    `FSCRS HS t1` = fscrsHST1, 
+    `FSCRS HS t2` = fscrsHST2, 
+    `FSCRS IS t1` = fscrsIST1, 
+    `FSCRS IS t2` = fscrsIST2, 
+    `FSCRS RS t1` = fscrsRST1, 
+    `FSCRS RS t2` = fscrsRST2, 
+    `RSES t1`= rsesT1,
+    `RSES t2`= rsesT2,
+    melamed,
+    DERS.global
+  ),
+  triangle = "lower",
+  stars = c(0.05, 0.01, 0.001)) %>%
+  extract2("apa") %>%
+  papaja::apa_table(caption = "Correlations of Questionnaire Scores",
+                    note = "* p < 0.05; ** p < 0.01; *** p < 0.001",
+                    escape = F) %>%
+  {.}
+
+# the aggregated scores are computed below.. (way below, near the appedix stuff)
+```
+
+
+```{r}
+cor.test(allds$BSI.general, allds$RRTt1, use = "comp") %>% parameters()
+cor.test(allds$BSI.general, allds$RRTt2, use = "comp") %>% parameters()
+
+cor.test(allds$melamed, allds$RRTt2, use = "comp") %>% parameters()
+cor.test(allds$melamed, allds$RRTt1, use = "comp") %>% parameters()
+```
+
+Also, note there's a session effect, where measure on the same session are more strongly correlated (not surprising, but worth a mention)
+maybe there's a practice effect? The first RRT was better correlated than the second. 
+
+
+```{r, include=includePrev}
+## Reliabiliy Analyses
+
+RSEST1                <- c("RSES_Q01T1","RSES_Q02T1","RSES_Q03T1","RSES_Q04T1","RSES_Q05T1","RSES_Q06T1","RSES_Q07T1","RSES_Q08T1","RSES_Q09T1","RSES_Q10T1")
+RSEST2                <- c("RSES_Q01T2","RSES_Q02T2","RSES_Q03T2","RSES_Q04T2","RSES_Q05T2","RSES_Q06T2","RSES_Q07T2","RSES_Q08T2","RSES_Q09T2","RSES_Q10T2")
+DEQ6T1                <- c("DEQ_Q01T1","DEQ_Q02T1","DEQ_Q03T1","DEQ_Q04T1","DEQ_Q05T1","DEQ_Q06T1")
+DEQ6T2                <- c("DEQ_Q01T2","DEQ_Q02T2","DEQ_Q03T2","DEQ_Q04T2","DEQ_Q05T2","DEQ_Q06T2")
+RRTT1                 <- c("RRTmod0T1","RRTmod1T1","RRTmod2T1")
+RRTT2                 <- c("RRTmod0T2","RRTmod1T2","RRTmod2T2")
+fscrsHST1             <- c("FSCRS_Q09T1","FSCRS_Q10T1","FSCRS_Q12T1","FSCRS_Q15T1","FSCRS_Q22T1")
+fscrsHST2             <- c("FSCRS_Q09T2","FSCRS_Q10T2","FSCRS_Q12T2","FSCRS_Q15T2","FSCRS_Q22T2")
+fscrsIST1             <- c("FSCRS_Q01T1","FSCRS_Q02T1","FSCRS_Q04T1","FSCRS_Q06T1","FSCRS_Q07T1","FSCRS_Q14T1","FSCRS_Q17T1","FSCRS_Q18T1","FSCRS_Q20T1")
+fscrsIST2             <- c("FSCRS_Q01T2","FSCRS_Q02T2","FSCRS_Q04T2","FSCRS_Q06T2","FSCRS_Q07T2","FSCRS_Q14T2","FSCRS_Q17T2","FSCRS_Q18T2","FSCRS_Q20T2")
+fscrsRST1             <- c("FSCRS_Q03T1","FSCRS_Q05T1","FSCRS_Q08T1","FSCRS_Q11T1","FSCRS_Q13T1","FSCRS_Q16T1","FSCRS_Q19T1","FSCRS_Q21T1")
+fscrsRST2             <- c("FSCRS_Q03T2","FSCRS_Q05T2","FSCRS_Q08T2","FSCRS_Q11T2","FSCRS_Q13T2","FSCRS_Q16T2","FSCRS_Q19T2","FSCRS_Q21T2")
+Melamed               <- c("MELAMED.Q01","MELAMED.Q02","MELAMED.Q04","MELAMED.Q05","MELAMED.Q06","MELAMED.Q08","MELAMED.Q09","MELAMED.Q11","MELAMED.Q12","MELAMED.Q14","MELAMED.Q16","MELAMED.Q17")
+DERS.clarity          <- c("DERS_Q01R" , "DERS_Q04" , "DERS_Q05" , "DERS_Q07R" , "DERS_Q09" )
+DERS.strategy         <- c("DERS_Q15" , "DERS_Q16" , "DERS_Q22R" , "DERS_Q28" , "DERS_Q30" , "DERS_Q31" , "DERS_Q35" , "DERS_Q36" )
+DERS.awareness        <- c("DERS_Q02R" , "DERS_Q06R" , "DERS_Q08R" , "DERS_Q10R" , "DERS_Q17R" , "DERS_Q34R")
+DERS.impulsive        <- c("DERS_Q03" , "DERS_Q14" , "DERS_Q19" , "DERS_Q24R" , "DERS_Q27" , "DERS_Q32")
+DERS.goals            <- c("DERS_Q13" , "DERS_Q18" , "DERS_Q20R" , "DERS_Q26" , "DERS_Q33")
+DERS.unacceptance     <- c("DERS_Q11" , "DERS_Q12" , "DERS_Q21" , "DERS_Q23" , "DERS_Q25" ,  "DERS_Q29")
+DERS.global           <- c("DERS_Q01R" , "DERS_Q04" , "DERS_Q05" , "DERS_Q07R" , "DERS_Q09" , 
+                           "DERS_Q15" , "DERS_Q16" , "DERS_Q22R" , "DERS_Q28" , "DERS_Q30" , "DERS_Q31" , "DERS_Q35" , "DERS_Q36" ,
+                           "DERS_Q02R" , "DERS_Q06R" , "DERS_Q08R" , "DERS_Q10R" , "DERS_Q17R" , "DERS_Q34R",
+                           "DERS_Q03" , "DERS_Q14" , "DERS_Q19" , "DERS_Q24R" , "DERS_Q27" , "DERS_Q32",
+                           "DERS_Q13" , "DERS_Q18" , "DERS_Q20R" , "DERS_Q26" , "DERS_Q33", 
+                           "DERS_Q11" , "DERS_Q12" , "DERS_Q21" , "DERS_Q23" , "DERS_Q25" ,  "DERS_Q29")
+CESDq                 <- c("CESD.Q01" , "CESD.Q02" , "CESD.Q03" , "CESD.Q05" , "CESD.Q06" , "CESD.Q07" , "CESD.Q09" , "CESD.Q10" , "CESD.Q11" , "CESD.Q13" , "CESD.Q14" , "CESD.Q15" , "CESD.Q17" , "CESD.Q18" , "CESD.Q19" , "CESD.Q20" , "CESD.Q04r" , "CESD.Q08r" , "CESD.Q12r" , "CESD.Q16r")
+BSI_Somatization      <- c("BSI.Q02" , "BSI.Q07" , "BSI.Q23" , "BSI.Q29" , "BSI.Q30" , "BSI.Q37")
+BSI_OCD               <- c("BSI.Q05" , "BSI.Q15" , "BSI.Q26" , "BSI.Q27" , "BSI.Q32" , "BSI.Q36")
+BSI_IntrprsnlSen      <- c("BSI.Q20" , "BSI.Q21" , "BSI.Q22" , "BSI.Q42")
+BSI_Anxiety           <- c("BSI.Q01" , "BSI.Q12" , "BSI.Q19" , "BSI.Q38" , "BSI.Q45" , "BSI.Q49")
+BSI_Depression        <- c("BSI.Q09" , "BSI.Q16" , "BSI.Q17" , "BSI.Q18" , "BSI.Q35" , "BSI.Q50")
+BSI_Hostility         <- c("BSI.Q06" , "BSI.Q13" , "BSI.Q40" , "BSI.Q41" , "BSI.Q46")
+BSI_PhobicAnxiety     <- c("BSI.Q08" , "BSI.Q28" , "BSI.Q31" , "BSI.Q43" , "BSI.Q47")
+BSI_ParanoidIdeation  <- c("BSI.Q04" , "BSI.Q10" , "BSI.Q24" , "BSI.Q48" , "BSI.Q51")
+BSI_Psychoticism      <- c("BSI.Q03" , "BSI.Q14" , "BSI.Q34" , "BSI.Q44" , "BSI.Q53")
+BSI_general           <- c("BSI.Q01" , "BSI.Q02" , "BSI.Q03" , "BSI.Q04" , "BSI.Q05" , "BSI.Q06" , "BSI.Q07" , "BSI.Q08" , "BSI.Q09" , "BSI.Q10" , "BSI.Q11" , "BSI.Q12" , "BSI.Q13" , "BSI.Q14" , "BSI.Q15" , "BSI.Q16" , "BSI.Q17" , "BSI.Q18" , "BSI.Q19" , "BSI.Q20" , "BSI.Q21" , "BSI.Q22" , "BSI.Q23" , "BSI.Q24" , "BSI.Q25" , "BSI.Q26" , "BSI.Q27" , "BSI.Q28" , "BSI.Q29" , "BSI.Q30" , "BSI.Q31" , "BSI.Q32" , "BSI.Q33" , "BSI.Q34" , "BSI.Q35" , "BSI.Q36" , "BSI.Q37" , "BSI.Q38" , "BSI.Q39" , "BSI.Q40" , "BSI.Q41" , "BSI.Q42" , "BSI.Q43" , "BSI.Q44" , "BSI.Q45" , "BSI.Q46" , "BSI.Q47" , "BSI.Q48" , "BSI.Q49" , "BSI.Q50" , "BSI.Q51" , "BSI.Q52" , "BSI.Q53")
+BSI_withoutOCD        <- c("BSI.Q01" , "BSI.Q02" , "BSI.Q03" , "BSI.Q04" , "BSI.Q06" , "BSI.Q07" , "BSI.Q08" , "BSI.Q09" , "BSI.Q10" , "BSI.Q11" , "BSI.Q12" , "BSI.Q13" , "BSI.Q14" , "BSI.Q16" , "BSI.Q17" , "BSI.Q18" , "BSI.Q19" , "BSI.Q20" , "BSI.Q21" , "BSI.Q22" , "BSI.Q23" , "BSI.Q24" , "BSI.Q25" , "BSI.Q28" , "BSI.Q29" , "BSI.Q30" , "BSI.Q31" , "BSI.Q33" , "BSI.Q34" , "BSI.Q35" , "BSI.Q37" , "BSI.Q38" , "BSI.Q39" , "BSI.Q40" , "BSI.Q41" , "BSI.Q42" , "BSI.Q43" , "BSI.Q44" , "BSI.Q45" , "BSI.Q46" , "BSI.Q47" , "BSI.Q48" , "BSI.Q49" , "BSI.Q50" , "BSI.Q51" , "BSI.Q52" , "BSI.Q53")
+```
+
+
+```{r, include=includePrev}
+RSEST1Cron <- round(psych::alpha(allds_item %>% select(all_of(RSEST1)))$total$raw_alpha, 2)
+RSEST2Cron <- round(psych::alpha(allds_item %>% select(all_of(RSEST2)))$total$raw_alpha, 2)
+DEQ6T1Cron <- round(psych::alpha(allds_item %>% select(all_of(DEQ6T1)))$total$raw_alpha, 2)
+DEQ6T2Cron <- round(psych::alpha(allds_item %>% select(all_of(DEQ6T2)))$total$raw_alpha, 2)
+RRTT1Cron <- round(psych::alpha(allds_item %>% select(all_of(RRTT1)))$total$raw_alpha, 2)
+RRTT2Cron <- round(psych::alpha(allds_item %>% select(all_of(RRTT2)))$total$raw_alpha, 2)
+fscrsHST1Cron <- round(psych::alpha(allds_item %>% select(all_of(fscrsHST1)))$total$raw_alpha, 2)
+fscrsHST2Cron <- round(psych::alpha(allds_item %>% select(all_of(fscrsHST2)))$total$raw_alpha, 2)
+fscrsIST1Cron <- round(psych::alpha(allds_item %>% select(all_of(fscrsIST1)))$total$raw_alpha, 2)
+fscrsIST2Cron <- round(psych::alpha(allds_item %>% select(all_of(fscrsIST2)))$total$raw_alpha, 2)
+fscrsRST1Cron <- round(psych::alpha(allds_item %>% select(all_of(fscrsRST1)))$total$raw_alpha, 2)
+fscrsRST2Cron <- round(psych::alpha(allds_item %>% select(all_of(fscrsRST2)))$total$raw_alpha, 2)
+MelamedCron <- round(psych::alpha(allds_item %>% select(all_of(Melamed)))$total$raw_alpha, 2)
+DERS.clarityCron <- round(psych::alpha(allds_item %>% select(all_of(DERS.clarity)))$total$raw_alpha, 2)
+DERS.strategyCron <- round(psych::alpha(allds_item %>% select(all_of(DERS.strategy)))$total$raw_alpha, 2)
+DERS.awarenessCron <- round(psych::alpha(allds_item %>% select(all_of(DERS.awareness)))$total$raw_alpha, 2)
+DERS.impulsiveCron <- round(psych::alpha(allds_item %>% select(all_of(DERS.impulsive)))$total$raw_alpha, 2)
+DERS.goalsCron <- round(psych::alpha(allds_item %>% select(all_of(DERS.goals)))$total$raw_alpha, 2)
+DERS.unacceptanceCron <- round(psych::alpha(allds_item %>% select(all_of(DERS.unacceptance)))$total$raw_alpha, 2)
+DERS.globalCron <- round(psych::alpha(allds_item %>% select(all_of(DERS.global)))$total$raw_alpha, 2)
+CESDqCron <- round(psych::alpha(allds_item %>% select(all_of(CESDq)))$total$raw_alpha, 2)
+BSI.SomatizationCron <- round(psych::alpha(allds_item %>% select(all_of(BSI_Somatization)))$total$raw_alpha, 2)
+BSI.OCDCron <- round(psych::alpha(allds_item %>% select(all_of(BSI_OCD)))$total$raw_alpha, 2)
+BSI.IntrprsnlSenCron <- round(psych::alpha(allds_item %>% select(all_of(BSI_IntrprsnlSen)))$total$raw_alpha, 2)
+BSI.AnxietyCron <- round(psych::alpha(allds_item %>% select(all_of(BSI_Anxiety)))$total$raw_alpha, 2)
+BSI.DepressionCron <- round(psych::alpha(allds_item %>% select(all_of(BSI_Depression)))$total$raw_alpha, 2)
+BSI.HostilityCron <- round(psych::alpha(allds_item %>% select(all_of(BSI_Hostility)))$total$raw_alpha, 2)
+BSI.PhobicAnxietyCron <- round(psych::alpha(allds_item %>% select(all_of(BSI_PhobicAnxiety)))$total$raw_alpha, 2)
+BSI.ParanoidIdeationCron <- round(psych::alpha(allds_item %>% select(all_of(BSI_ParanoidIdeation)))$total$raw_alpha, 2)
+BSI.PsychoticismCron <- round(psych::alpha(allds_item %>% select(all_of(BSI_Psychoticism)))$total$raw_alpha, 2)
+BSI.generalCron <- round(psych::alpha(allds_item %>% select(all_of(BSI_general)))$total$raw_alpha, 2)
+BSI.withoutOCDCron <- round(psych::alpha(allds_item %>% select(all_of(BSI_withoutOCD)))$total$raw_alpha, 2)
+```
+
+```{r, results='asis', include=includePrev}
+# IC table
+trtRRT <- allds %$% cor(RRTt1,RRTt2, use = "complete")
+trtRSES <- allds %$% cor(rsesT1,rsesT2, use = "complete")
+trtDEQ6 <- allds %$% cor(deq6T1,deq6T2, use = "complete")
+trtfscrsHS <- allds %$% cor(fscrsHST1,fscrsHST2, use = "complete")
+trtfscrsIS <- allds %$% cor(fscrsIST1,fscrsIST2, use = "complete")
+trtfscrsRS <- allds %$% cor(fscrsRST1,fscrsRST2, use = "complete")
+
+tribble(~measure,~`Cronbach\'s Alpha T1`,~`Cronbach\'s Alpha T2`,~`test-retest`,
+        "SC-RRT",RRTT1Cron,RRTT2Cron,trtRRT,
+        "RSES",RSEST1Cron,RSEST2Cron,trtRSES,
+        "DEQ-SC6",DEQ6T1Cron,DEQ6T2Cron,trtDEQ6,
+        "FSCRS HS",fscrsHST1Cron,fscrsHST2Cron,trtfscrsHS,
+        "FSCRS IS",fscrsIST1Cron,fscrsIST2Cron,trtfscrsIS,
+        "FSCRS RS",fscrsRST1Cron,fscrsRST2Cron,trtfscrsRS,
+        "BSI Global",BSI.generalCron, NA_real_,NA_real_,
+        "BSI Depression",BSI.DepressionCron, NA_real_,NA_real_,
+        "CESD",CESDqCron, NA_real_,NA_real_,
+        "Melamed",MelamedCron, NA_real_,NA_real_,
+        "DERS Global",DERS.globalCron, NA_real_,NA_real_,
+
+        ) %>% 
+    papaja::apa_table(caption = "Internal Consistency and test-retest reliability",
+                    # note = "* p < 0.05; ** p < 0.01; *** p < 0.001",
+                    escape = F)
+
+
+```
+
+```{r}
+# discriminant validity
+allds %$%
+  psych::correct.cor(cor(matrix(c(RRTt1,rsesT1),ncol = 2), use = "pairwise"),c(RRTT1Cron,RSEST1Cron))[1,2]
+allds %$%
+  psych::correct.cor(cor(matrix(c(RRTt2,rsesT2),ncol = 2), use = "pairwise"),c(RRTT2Cron,RSEST2Cron))[1,2]
+```
+
+
+```{r, include=F}
+allds_computed_cen <- allds %>% as_tibble() %>%
+  select( RRTt1 , RRTt2 , BSI.general , BSI.Depression , CESD = cesd , deq6T1 , deq6T2 , fscrsHST1 , fscrsHST2 , fscrsIST1 , fscrsIST2 , fscrsRST1 , fscrsRST2 , rsesT1 , rsesT2 , melamed , DERS.global , female ) %>%
+  mutate(
+    RRT = row_means(RRTt1,RRTt2),
+    deq6 = row_means(deq6T1 , deq6T2 ), 
+    fscrsHS = row_means(fscrsHST1 , fscrsHST2 ), 
+    fscrsIS = row_means(fscrsIST1 , fscrsIST2 ), 
+    fscrsRS = row_means(fscrsRST1 , fscrsRST2 ), 
+    RSES = row_means(rsesT1 , rsesT2 )
+  ) %>% 
+  mutate(across(where(is.numeric) & !female,  ~ scale(.x, scale = F, center = T)))
+
+allds_computed_scl <- allds_computed_cen %>% 
+  mutate(across(where(is.numeric) & !female,~as.numeric(scale(.x, scale = T,center = T))),
+         ER = row_means(melamed, DERS.global))
+
+```
+
+
+
+```{r, include=F}
+#these create excel files with the tables 
+fit1 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * deq6 + ER) 
+fit2 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * deq6 + ER) 
+fit3 <- lm(data = allds_computed_scl , CESD           ~ RRT * deq6 + ER) 
+
+parameters(fit1)
+parameters(fit2)
+parameters(fit3)
+
+export_summs(fit1,fit2,fit3,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_DEQ-SC6_ER.xlsx"
+                     )
+
+#these create excel files with the tables fscrsIS
+fit1 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * fscrsIS + ER) 
+fit2 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * fscrsIS + ER) 
+fit3 <- lm(data = allds_computed_scl , CESD           ~ RRT * fscrsIS + ER) 
+
+parameters(fit1)
+parameters(fit2)
+parameters(fit3)
+
+export_summs(fit1,fit2,fit3,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_fscrsIS_ER.xlsx"
+                     )
+
+
+#these create excel files with the tables fscrsHS
+fit1 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * fscrsHS + ER) 
+fit2 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * fscrsHS + ER) 
+fit3 <- lm(data = allds_computed_scl , CESD           ~ RRT * fscrsHS + ER) 
+
+parameters(fit1)
+parameters(fit2)
+parameters(fit3)
+
+export_summs(fit1,fit2,fit3,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_fscrsHS_ER.xlsx"
+                     )
+
+#these create excel files with the tables fscrsRS
+fit1 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * fscrsRS + ER) 
+fit2 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * fscrsRS + ER) 
+fit3 <- lm(data = allds_computed_scl , CESD           ~ RRT * fscrsRS + ER) 
+
+parameters(fit1)
+parameters(fit2)
+parameters(fit3)
+
+export_summs(fit1,fit2,fit3,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_fscrsRS_ER.xlsx"
+                     )
+```
+
+```{r}
+p4 <- interact_plot(fit2,modx = "fscrsRS",pred = "RRT", x.label = "SC-RRT (z Score)" , y.label = "BSI Depression (z Score)", legend.main = "FSCRS RS", colors = "Greys", main.title = "Simple Slopes", modx.values = "plus-minus") + papaja::theme_apa() + ylim(c(-2,2))
+simslp <- sim_slopes(fit2,modx = "fscrsRS",pred = "RRT", jnplot = T, sig.color = "black", insig.color = "grey", title = "Johnson-Neyman", modx.values = "plus-minus")
+s4 <- simslp$jnplot + labs(y = "Slope of SC-RRT" , x = "FSCRS RS (z Score)") + papaja::theme_apa() + theme(legend.title = element_blank())
+simslp$slopes
+
+p5 <- interact_plot(fit3,modx = "fscrsRS",pred = "RRT", x.label = "SC-RRT (z Score)" , y.label = "CES-D (z Score)", legend.main = "FSCRS RS", colors = "Greys", main.title = "Simple Slopes", modx.values = "plus-minus") + papaja::theme_apa() + ylim(c(-2,2))
+simslp <- sim_slopes(fit3,modx = "fscrsRS",pred = "RRT", jnplot = T, sig.color = "black", insig.color = "grey", title = "Johnson-Neyman", modx.values = "plus-minus")
+s5 <- simslp$jnplot + labs(y = "Slope of SC-RRT" , x = "FSCRS RS (z Score)") + papaja::theme_apa() + theme(legend.title = element_blank())
+simslp$slopes
+
+ggsave(p4 + s4 + plot_annotation(tag_levels = 'A') + plot_layout(design = "AA##BB") , filename = "figures/figure4.png", width = 9.8, height = 5.2, units = "in")
+ggsave(p5 + s5 + plot_annotation(tag_levels = 'A') + plot_layout(design = "AA##BB") , filename = "figures/figure5.png", width = 9.8, height = 5.2, units = "in")
+```
+
+```{r}
+lm(data = allds_computed_scl , RSES    ~ RRT + ER) %>% summ()
+
+```
+
+```{r, include=F}
+# for appendix
+
+# replicate no control from Study 3
+fit4 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * deq6) 
+fit5 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * deq6) 
+fit6 <- lm(data = allds_computed_scl , CESD           ~ RRT * deq6) 
+
+export_summs(fit4,fit5,fit6,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_DEQ-SC6.xlsx"
+                     )
+# replicate gender from Study 3
+fit7 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * deq6 * female) 
+fit8 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * deq6 * female) 
+fit9 <- lm(data = allds_computed_scl , CESD           ~ RRT * deq6 * female) 
+
+export_summs(fit7,fit8,fit9,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_DEQ-SC6_sex.xlsx"
+                     )
+
+# replicate no control from Study 3
+fit4 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * fscrsHS) 
+fit5 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * fscrsHS) 
+fit6 <- lm(data = allds_computed_scl , CESD           ~ RRT * fscrsHS) 
+
+export_summs(fit4,fit5,fit6,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_fscrsHS.xlsx"
+                     )
+# replicate gender from Study 3
+fit7 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * fscrsHS * female) 
+fit8 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * fscrsHS * female) 
+fit9 <- lm(data = allds_computed_scl , CESD           ~ RRT * fscrsHS * female) 
+
+export_summs(fit7,fit8,fit9,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_fscrsHS_sex.xlsx"
+                     )
+
+# replicate no control from Study 3
+fit4 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * fscrsIS) 
+fit5 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * fscrsIS) 
+fit6 <- lm(data = allds_computed_scl , CESD           ~ RRT * fscrsIS) 
+
+export_summs(fit4,fit5,fit6,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_fscrsIS.xlsx"
+                     )
+# replicate gender from Study 3
+fit7 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * fscrsIS * female) 
+fit8 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * fscrsIS * female) 
+fit9 <- lm(data = allds_computed_scl , CESD           ~ RRT * fscrsIS * female) 
+
+export_summs(fit7,fit8,fit9,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_fscrsIS_sex.xlsx"
+                     )
+
+# replicate no control from Study 3
+fit4 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * fscrsRS) 
+fit5 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * fscrsRS) 
+fit6 <- lm(data = allds_computed_scl , CESD           ~ RRT * fscrsRS) 
+
+export_summs(fit4,fit5,fit6,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_fscrsRS.xlsx"
+                     )
+# replicate gender from Study 3
+fit7 <- lm(data = allds_computed_scl , BSI.general    ~ RRT * fscrsRS * female) 
+fit8 <- lm(data = allds_computed_scl , BSI.Depression ~ RRT * fscrsRS * female) 
+fit9 <- lm(data = allds_computed_scl , CESD           ~ RRT * fscrsRS * female) 
+
+export_summs(fit7,fit8,fit9,
+                     model.names = c("BSI Global", "BSI Depression", "CESD")
+                     , to.file = "xlsx", file.name = "tables/lm_fscrsRS_sex.xlsx"
+                     )
+
+
+
+pA1 <- interact_plot(fit8,modx = "female",pred = "RRT", x.label = "SC-RRT (z Score)" , y.label = "BSI Depression (z Score)", legend.main = "Gender", colors = "Greys", main.title = "Simple Slopes", modx.values = c(0,1), modx.labels = c("Males","Females")) + papaja::theme_apa() + ylim(c(-2,2))
+simslp <- sim_slopes(fit8,modx = "female",pred = "RRT", jnplot = T, sig.color = "black", insig.color = "grey", title = "Johnson-Neyman", modx.values = c(0,1))
+sA1 <- simslp$jnplot + labs(y = "Slope of SC-RRT" , x = "SC-RRT (z Score)") + papaja::theme_apa() + theme(legend.title = element_blank())
+simslp$slopes
+
+ggsave(pA1 + sA1 + plot_annotation(tag_levels = 'A') + plot_layout(design = "AA##BB") , filename = "figures/figureA1.png", width = 9.8, height = 5.2, units = "in")
+
+
+```
+
+```{r}
+allds_computed_agg <- allds %>% as_tibble() %>%
+  select( RRTt1 , RRTt2 , BSI.general , BSI.Depression , CESD = cesd , deq6T1 , deq6T2 , fscrsHST1 , fscrsHST2 , fscrsIST1 , fscrsIST2 , fscrsRST1 , fscrsRST2 , rsesT1 , rsesT2 , melamed , DERS.global , female ) %>%
+  mutate(
+    RRT = row_means(RRTt1,RRTt2),
+    deq6 = row_means(deq6T1 , deq6T2 ), 
+    fscrsHS = row_means(fscrsHST1 , fscrsHST2 ), 
+    fscrsIS = row_means(fscrsIST1 , fscrsIST2 ), 
+    fscrsRS = row_means(fscrsRST1 , fscrsRST2 ), 
+    RSES = row_means(rsesT1 , rsesT2 ),
+    zMelmd = scale(melamed),
+    zDERS = scale(DERS.global),
+    ER = row_means(zMelmd,zDERS)
+  ) 
+
+describe_distribution(allds_computed_agg %>% select(
+  `SC-RRT` = RRT,
+  `DEQ-SC6` = deq6, 
+  `FSCRS HS` = fscrsHS, 
+  `FSCRS IS` = fscrsIS, 
+  `FSCRS RS` = fscrsRS, 
+  RSES,
+  ER,
+  zDERS,
+  zMelmd
+                                       )) %>%
+        mutate(across(where(is.numeric),~round(.x,2))) %>% 
+        select(-n,-n_Missing) %>% 
+        # apa_table(caption = "Descriptives for the questionnaires") %>%
+        {.}
+```
+
+
+```{r}
+# for appendix aggregated correlation table
+
+corx(allds_computed_agg %>% select(
+    `SC-RRT` = RRT,
+    `BSI General` = BSI.general, 
+    `BSI Depression` = BSI.Depression, 
+    CESD,
+    `DEQ-SC6` = deq6, 
+    `FSCRS HS` = fscrsHS, 
+    `FSCRS IS` = fscrsIS, 
+    `FSCRS RS` = fscrsRS, 
+    RSES,
+    ER
+  ),
+  triangle = "lower",
+  stars = c(0.05, 0.01, 0.001)) %>%
+  extract2("apa") %>%
+  papaja::apa_table(caption = "Correlations of Questionnaire Scores",
+                    note = "* p < 0.05; ** p < 0.01; *** p < 0.001",
+                    escape = F) %>%
+  {.}
+```
+
+
+```{r}
+# semi partial correlations, controlling for ER 
+corx(data = allds_computed_scl %>% select(
+    `SC-RRT` = RRT,
+    `BSI General` = BSI.general, 
+    `BSI Depression` = BSI.Depression, 
+    CESD,
+    `DEQ-SC6` = deq6, 
+    `FSCRS HS` = fscrsHS, 
+    `FSCRS IS` = fscrsIS, 
+    `FSCRS RS` = fscrsRS, 
+    RSES,
+    ER
+  ),
+  z = ER,
+  triangle = "lower",
+  stars = c(0.05, 0.01, 0.001)) %>%
+  extract2("apa") %>%
+  papaja::apa_table(caption = "Correlations of Questionnaire Scores, controlling for emotional reactivity",
+                    note = "* p < 0.05; ** p < 0.01; *** p < 0.001",
+                    escape = F) %>%
+  {.}
+
+```
+
+```{r}
+allds_computed_agg %$%
+  cor.test(ER,RRT) %>% parameters()
+```
+
