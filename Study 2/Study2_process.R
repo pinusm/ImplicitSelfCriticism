@@ -1,4 +1,4 @@
-# This file can't run due to deidentification. Contact pinusm@post.bgu.ac.il for the original code
+# This file can't run due to deidentification. Contact Michael Pinus at pinusm@post.bgu.ac.il for the original code
 # (which is identical, except for replaceing RedactedUser@EmailXX with real email addresses)
 
 # load packages and functions ##################################################
