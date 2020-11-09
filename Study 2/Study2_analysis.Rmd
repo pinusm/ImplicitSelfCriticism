@@ -1,0 +1,648 @@
+---
+title: "The Self Criticism qIAT and SC-B – Validation of Indirect Measures of Self-Criticism"
+shorttitle: "SC-B - Study Summary"
+author: 
+  - name:  Michael Pinus
+    affiliation: 1
+    corresponding: no    # Define only one corresponding author
+    department: "Department Psychology"
+    address: "Department Psychology, Ben-Gurion University in the Negev, Israel"
+    email: "pinusm@post.bgu.ac.il"
+  - name:  Golan Shahar
+    affiliation: 1
+    corresponding: no    # Define only one corresponding author
+    department:
+    address: "Department Psychology, Ben-Gurion University in the Negev, Israel"
+    email: "pinusm@post.bgu.ac.il"
+  - name:  Yoav Bar-Anan
+    affiliation: 1
+    corresponding: no    # Define only one corresponding author
+    department:
+    address: "Department Psychology, Ben-Gurion University in the Negev, Israel"
+    email: "pinusm@post.bgu.ac.il"
+affiliation:
+  - id: 1
+    institution: "Ben-Gurion University in the Negev"
+#abstract: |
+  
+note: |  
+  
+  This document was created in Rmarkdown using `papaja` https://github.com/crsh/papaja.
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : yes
+mask              : no
+draft             : yes
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_word
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+includePrev = T
+knitr::opts_chunk$set(echo = F,
+                      tidy = "styler",
+                      cache = TRUE)
+
+suppressPackageStartupMessages({
+  library(magrittr) # A Forward-Pipe Operator for R
+  library(lubridate) # Make Dealing with Dates a Little Easier
+  library(tidyverse) # Easily Install and Load the 'Tidyverse'
+  library(conflicted) # An Alternative Conflict Resolution Strategy
+  library(Mmisc) # Some Helper Functions for Michael's Code
+  library(RColorBrewer) # ColorBrewer Palettes
+  library(BayesFactor) # Computation of Bayes Factors for Common Designs
+  library(parameters) # Processing of Model Parameters
+  library(ggpubr) # 'ggplot2' Based Publication Ready Plots
+  library(patchwork) # The Composer of Plots
+  library(psych)
+  library(stargazer) # Well-Formatted Regression and Summary Statistics Tables
+  library(see) # Visualisation Toolbox for 'easystats' and Extra Geoms, Themes and Color Palettes for 'ggplot2'
+  library(papaja) # Prepare reproducible APA journal articles with R Markdown
+  library(interactions)
+  library(corx)
+  library(effectsize)
+  library(jtools)
+  library(lavaan)
+  library(lme4)
+})
+
+options(digits = 3)
+conflicted::conflict_prefer("filter", "dplyr", quiet = T)
+conflicted::conflict_prefer("select", "dplyr", quiet = T)
+copy_to_clipboard <- function(x,row.names = T){
+  write.table(x,file = "clipboard", row.names = row.names, sep = "\t", quote = F)
+}
+allds_pi <- fst::read_fst("data/PI_item.fst") 
+allds <- fst::read_fst("data/allds.fst") 
+comparison_DspOrd <- fst::read_fst("data/comparison_DspOrd.fst") 
+
+allds_agg <- allds %>% 
+  mutate(change_nchar = str_count(change),
+         memory_nchar = str_count(memory),
+         mem_chng_diff_nchar = change_nchar/memory_nchar,
+         SC_qIAT = row_means(qIATSC_t1,qIATSC_t2),
+         SE_qIAT = row_means(qIATSE_t1,qIATSE_t2),
+         RSES = row_means(rses_t1,rses_t2),
+         CESD = row_means(cesd_t1,cesd_t2),
+         BSI_Depression = row_means(bsi.Depression_t1,bsi.Depression_t2),
+         BSI_global = row_means(bsi.general_t1,bsi.general_t2),
+         FSCRS_HS = row_means(fscrsHS_t1,fscrsHS_t2),
+         FSCRS_RS = row_means(fscrsRS_t1,fscrsRS_t2),
+         FSCRS_IS = row_means(fscrsIS_t1,fscrsIS_t2)
+  ) %>% mutate(across(c(starts_with("satis"),
+             starts_with("expect"),
+             starts_with("retrospective"),
+             ends_with("nchar"),
+             starts_with("estim")
+             ),~as.numeric(scale(.x)))) %>% 
+  mutate(estimateSeconds = -1*estimateSeconds, #this is reversed. estimating less seconds mean higher performance
+         estimateVsReal = -1*estimateVsReal, #this is reversed. coded so that higher scores indicate real was higher than expected.
+         satis_gen = -1*satis_gen, #this is reversed. coded so that higher scores indicate high satisfaction
+         satis_speed = -1*satis_speed, #this is reversed. coded so that higher scores indicate high satisfaction
+         satis_firstTrial = -1*satis_firstTrial, #this is reversed. coded so that higher scores indicate high satisfaction
+    self_bash = row_means(satis_gen, satis_speed, satis_firstTrial,estimateVsReal, retrospectiveSC_2, retrospectiveSC_3, retrospectiveSC_4, retrospectiveSC_5, retrospectiveSC_6,change_nchar),
+         unreal_expt = row_means(expecting , estimateFirstTrial , estimateSeconds, retrospectiveSC_1))
+
+allds_computed_cen <- allds_agg %>% as_tibble() %>%
+  select(part1id,SC_qIAT,qIATSC_t1,qIATSC_t2,SE_qIAT,qIATSE_t1,qIATSE_t2,RSES,rses_t1,rses_t2,CESD,cesd_t1,cesd_t2,BSI_Depression,bsi.Depression_t1,bsi.Depression_t2,BSI_global,bsi.general_t1,bsi.general_t2, self_bash,unreal_expt, fscrsHS_t1,fscrsHS_t2,FSCRS_HS, fscrsRS_t1,fscrsRS_t2,FSCRS_RS, fscrsIS_t1,fscrsIS_t2,FSCRS_IS) %>%
+  mutate(across(where(is.numeric),  ~ scale(.x, scale = F, center = T)))
+
+allds_computed_scl <- allds_computed_cen %>% 
+  mutate(across(where(is.numeric),~as.numeric(scale(.x, scale = T,center = T))))
+
+social_comparison_df <- allds %>% select(part1id, Lower1, Lower2, Higher1, Higher2) %>% 
+  pivot_longer(cols = -part1id,values_to = "value",names_to = "key") %>% 
+  separate(key,into = c("type","degree"),sep = "er") %>% 
+  left_join(allds_computed_cen %>% select(part1id, SC_qIAT, FSCRS_HS, FSCRS_IS, FSCRS_RS,self_bash,unreal_expt), by = "part1id") %>% 
+  left_join(comparison_DspOrd, by = c("part1id", "type", "degree")) %>% 
+  mutate(degree = (as.numeric(degree)-1) %>% as.factor(),
+         type = as.factor(type)) 
+```
+
+```{r, include=includePrev}
+## Participants 
+completedPs <- allds %>% filter(!is.na(total_mins_t2)) %>% nrow()
+totalPs <-  allds %>% filter(!is.na(part1id)) %>% nrow()
+completedPsPercent <-  round(100*completedPs/totalPs)
+completedPsFemale <-  (allds %>% filter(!is.na(total_mins_t2)) %$% table(female))[[2]] %>% round(2)
+completedPsFemalePercent <-  (allds %>% filter(!is.na(total_mins_t2)) %$% table(female) %>% prop.table())[[2]] %>% round(2)
+# count females in total sample
+PsFemale <- (allds %>% filter(!is.na(part1id)) %$% table(female))[[2]] %>% round(2)
+PsFemalePercent <-  (allds %>% filter(!is.na(part1id)) %$% table(female) %>% prop.table())[[2]] %>% round(2) * 100
+# get age of all sample
+describe_distribution(allds %>% filter(!is.na(total_mins_t2)) %>% pull(age))
+# get age of completed sample
+describe_distribution(allds %>% filter(!is.na(part1id)) %>% pull(age))
+table(allds$batch)%>% prop.table() %>% round(2) 
+```
+
+```{r, results='asis', include=T}
+## HWG statistics
+allds %>% select(starts_with("hidden_words_Retries")) %>% describe_distribution() %>%
+        mutate(across(where(is.numeric),~round(.x,2))) %>% 
+        select(-n,-n_Missing,-IQR,-Min,-Max,-Skewness,-Kurtosis) %>% 
+        apa_table(caption = "Descriptives") %>%
+        {.}
+```
+
+```{r, results='asis', include=T}
+## HWG statistics
+allds %>% select(starts_with("hidden_words_Retries")) %>% describe_distribution() %>%
+        mutate(across(where(is.numeric),~round(.x,2))) %>% 
+        select(-n,-n_Missing,-IQR,-Min,-Max,-Skewness,-Kurtosis) %>% 
+        apa_table(caption = "Descriptives") %>%
+  {.}
+```
+
+
+```{r, results='asis', include=T}
+allds %>%
+  select(starts_with("hidden_words_RT_")) %>%
+  mutate(across(where(is.numeric),~.x/1000)) %>%
+  describe_distribution() %>%
+  select(-n,-n_Missing,-IQR,-Min,-Max,-Skewness,-Kurtosis)%>% 
+        apa_table(caption = "Descriptives") %>%
+  {.}
+
+```
+
+```{r}
+
+allds_agg %>% select(
+  SC_qIAT,
+  SE_qIAT,
+  RSES,
+  CESD,
+  BSI_Depression,
+  BSI_global,
+  FSCRS_HS,
+  FSCRS_RS,
+  FSCRS_IS,
+  self_bash,
+  unreal_expt) %>% corx()
+
+```
+
+
+```{r}
+allds_agg %>%
+  select(SC_qIAT,qIATSC_t1,qIATSC_t2,SE_qIAT,qIATSE_t1,qIATSE_t2,RSES,rses_t1,rses_t2,CESD,cesd_t1,cesd_t2,BSI_Depression,bsi.Depression_t1,bsi.Depression_t2,BSI_global,bsi.general_t1,bsi.general_t2, FSCRS_HS, fscrsHS_t1, fscrsHS_t2, FSCRS_RS, fscrsRS_t1, fscrsRS_t2, FSCRS_IS, fscrsIS_t1, fscrsIS_t2, self_bash, unreal_expt) %>%
+  describe_distribution() %>%
+  select(-n,-n_Missing,-IQR,-Skewness,-Kurtosis) %>% 
+  mutate(across(where(is.numeric),~round(.x,2))) %T>% 
+  copy_to_clipboard() %>% 
+  apa_table(caption = "Descriptives") %>%
+  {.}
+      
+```
+
+
+```{r, include=includePrev}
+## Reliabiliy Analyses
+rsesQs <- c("rsesQ01","rsesQ02","rsesQ03","rsesQ04","rsesQ05","rsesQ06r","rsesQ07r","rsesQ08r","rsesQ09r","rsesQ10r")
+cesdQs <- c("cesdQ01","cesdQ02","cesdQ03","cesdQ04r","cesdQ05","cesdQ06","cesdQ07","cesdQ08r","cesdQ09","cesdQ10",
+            "cesdQ11","cesdQ12r","cesdQ13","cesdQ14","cesdQ15","cesdQ16r","cesdQ17","cesdQ18","cesdQ19","cesdQ20")
+qIATSCqs <- c("qiatmod0SC","qiatmod1SC","qiatmod2SC")
+qIATSEqs <- c("qiatmod0SE","qiatmod1SE","qiatmod2SE")
+BSI_Depression <- c("bsiQ09" , "bsiQ16" , "bsiQ17" , "bsiQ18" , "bsiQ35" , "bsiQ50")
+BSI_global <- c("bsiQ01" , "bsiQ02" , "bsiQ03" , "bsiQ04" , "bsiQ05" , "bsiQ06" , "bsiQ07" , "bsiQ08" , "bsiQ09" , "bsiQ10" ,
+                "bsiQ11" , "bsiQ12" , "bsiQ13" , "bsiQ14" , "bsiQ15" , "bsiQ16" , "bsiQ17" , "bsiQ18" , "bsiQ19" , "bsiQ20" ,
+                "bsiQ21" , "bsiQ22" , "bsiQ23" , "bsiQ24" , "bsiQ25" , "bsiQ26" , "bsiQ27" , "bsiQ28" , "bsiQ29" , "bsiQ30" ,
+                "bsiQ31" , "bsiQ32" , "bsiQ33" , "bsiQ34" , "bsiQ35" , "bsiQ36" , "bsiQ37" , "bsiQ38" , "bsiQ39" , "bsiQ40" ,
+                "bsiQ41" , "bsiQ42" , "bsiQ43" , "bsiQ44" , "bsiQ45" , "bsiQ46" , "bsiQ47" , "bsiQ48" , "bsiQ49" , "bsiQ50" ,
+                "bsiQ51" , "bsiQ52" , "bsiQ53")
+
+fscrsHSq <- c("fscrsQ09","fscrsQ10", "fscrsQ12","fscrsQ15","fscrsQ22")
+fscrsRSq <- c("fscrsQ03","fscrsQ05", "fscrsQ08","fscrsQ11","fscrsQ13","fscrsQ16","fscrsQ19","fscrsQ21")
+fscrsISq <- c("fscrsQ01","fscrsQ02", "fscrsQ04","fscrsQ06","fscrsQ07","fscrsQ14","fscrsQ17","fscrsQ18","fscrsQ20")
+self_bashQs  <- c("satis_gen","satis_speed","satis_firstTrial","estimateVsReal","retrospectiveSC_2","retrospectiveSC_3","retrospectiveSC_4","retrospectiveSC_5","retrospectiveSC_6","change_nchar")
+unreal_exptQs <- c("expecting","estimateFirstTrial","estimateSeconds","retrospectiveSC_1")
+
+qIATSC_cron_T1 <- round(psych::alpha(allds_pi %>% filter(wave == 1) %>% select(all_of(qIATSCqs)))$total$raw_alpha, 2)
+qIATSC_cron_T2 <- round(psych::alpha(allds_pi %>% filter(wave == 2) %>% select(all_of(qIATSCqs)))$total$raw_alpha, 2)
+fscrsHS_cron_T1 <- round(psych::alpha(allds_pi %>% filter(wave == 1) %>% select(all_of(fscrsHSq)))$total$raw_alpha, 2)
+fscrsRS_cron_T1 <- round(psych::alpha(allds_pi %>% filter(wave == 1) %>% select(all_of(fscrsRSq)))$total$raw_alpha, 2)
+fscrsIS_cron_T1 <- round(psych::alpha(allds_pi %>% filter(wave == 1) %>% select(all_of(fscrsISq)))$total$raw_alpha, 2)
+fscrsHS_cron_T2 <- round(psych::alpha(allds_pi %>% filter(wave == 2) %>% select(all_of(fscrsHSq)))$total$raw_alpha, 2)
+fscrsRS_cron_T2 <- round(psych::alpha(allds_pi %>% filter(wave == 2) %>% select(all_of(fscrsRSq)))$total$raw_alpha, 2)
+fscrsIS_cron_T2 <- round(psych::alpha(allds_pi %>% filter(wave == 2) %>% select(all_of(fscrsISq)))$total$raw_alpha, 2)
+qIATSE_cron_T1 <- round(psych::alpha(allds_pi %>% filter(wave == 1) %>% select(all_of(qIATSEqs)))$total$raw_alpha, 2)
+qIATSE_cron_T2 <- round(psych::alpha(allds_pi %>% filter(wave == 2) %>% select(all_of(qIATSEqs)))$total$raw_alpha, 2)
+rses_cron_T1 <- round(psych::alpha(allds_pi %>% filter(wave == 1) %>% select(all_of(rsesQs)))$total$raw_alpha, 2)
+rses_cron_T2 <- round(psych::alpha(allds_pi %>% filter(wave == 2) %>% select(all_of(rsesQs)))$total$raw_alpha, 2)
+cesd_cron_T1 <- round(psych::alpha(allds_pi %>% filter(wave == 1) %>% select(all_of(cesdQs)))$total$raw_alpha, 2)
+cesd_cron_T2 <- round(psych::alpha(allds_pi %>% filter(wave == 2) %>% select(all_of(cesdQs)))$total$raw_alpha, 2)
+BSI.Global_cron_T1 <- round(psych::alpha(allds_pi %>% filter(wave == 1) %>% select(all_of(BSI_global)))$total$raw_alpha, 2)
+BSI.Global_cron_T2 <- round(psych::alpha(allds_pi %>% filter(wave == 2) %>% select(all_of(BSI_global)))$total$raw_alpha, 2)
+BSI.Depression_cron_T1 <- round(psych::alpha(allds_pi %>% filter(wave == 1) %>% select(all_of(BSI_Depression)))$total$raw_alpha, 2)
+BSI.Depression_cron_T2 <- round(psych::alpha(allds_pi %>% filter(wave == 2) %>% select(all_of(BSI_Depression)))$total$raw_alpha, 2)
+
+self_bash_cron <- round(psych::alpha(allds_agg %>% select(all_of(self_bashQs)),check.keys = T)$total$raw_alpha, 2)
+unreal_expt_cron <- round(psych::alpha(allds_agg %>% select(all_of(unreal_exptQs)))$total$raw_alpha, 2)
+
+```
+
+```{r, results='asis', include=includePrev}
+# IC table
+trtrsesQs <- allds %$% cor(rses_t1,rses_t2, use = "complete") %>% round(2)
+trtcesdQs <- allds %$% cor(cesd_t1,cesd_t2, use = "complete") %>% round(2)
+trtqIATSCqs <- allds %$% cor(qIATSC_t1,qIATSC_t2, use = "complete") %>% round(2)
+trtqIATSEqs <- allds %$% cor(qIATSE_t1,qIATSE_t2, use = "complete") %>% round(2)
+trtBSI_Depression <- allds %$% cor(bsi.Depression_t1,bsi.Depression_t2, use = "complete") %>% round(2)
+trtBSI_global <- allds %$% cor(bsi.general_t1,bsi.general_t2, use = "complete") %>% round(2)
+trt_fscrsHS <- allds %$% cor(fscrsHS_t1,fscrsHS_t2, use = "complete") %>% round(2)
+trt_fscrsRS <- allds %$% cor(fscrsRS_t1,fscrsRS_t2, use = "complete") %>% round(2)
+trt_fscrsIS <- allds %$% cor(fscrsIS_t1,fscrsIS_t2, use = "complete") %>% round(2)
+
+tribble(~measure,~`Cronbach\'s Alpha T1`,~`Cronbach\'s Alpha T2`,~`test-retest`,
+        "SC-qIAT",qIATSC_cron_T1,qIATSC_cron_T2,trtqIATSCqs,
+        "SE-qIAT",qIATSE_cron_T1,qIATSE_cron_T2,trtqIATSEqs,
+        "FSCRS HS",fscrsHS_cron_T1,fscrsHS_cron_T2,trt_fscrsHS,
+        "FSCRS RS",fscrsRS_cron_T1,fscrsRS_cron_T2,trt_fscrsRS,
+        "FSCRS IS",fscrsIS_cron_T1,fscrsIS_cron_T2,trt_fscrsIS,
+        "BSI Global",BSI.Global_cron_T1,BSI.Global_cron_T2,trtBSI_global,
+        "CES-D",cesd_cron_T1,cesd_cron_T2,trtcesdQs,
+        "BSI Depression",BSI.Depression_cron_T1,BSI.Depression_cron_T2,trtBSI_Depression,
+        "RSES",rses_cron_T1,rses_cron_T2,trtrsesQs,
+        "Self Bashing", self_bash_cron,NA,NA,
+        "Unreal Expectations", unreal_expt_cron,NA,NA
+        ) %T>% 
+  copy_to_clipboard() %>% 
+    papaja::apa_table(caption = "Internal Consistency and test-retest reliability",
+                    # note = "* p < 0.05; ** p < 0.01; *** p < 0.001",
+                    escape = F)
+```
+
+```{r rrt data ttest, echo = FALSE, include=includePrev}
+D.t.test.t1 <- t.test(allds$qIATSC_t1,mu=0)
+D.t.test.t1 %>% parameters()
+t_to_d(D.t.test.t1$statistic, D.t.test.t1$parameter)
+sd(allds$qIATSC_t1, na.rm = T)
+interpret_d(-.98)
+
+D.t.test.t2 <- t.test(allds$qIATSC_t2,mu=0)
+D.t.test.t2 %>% parameters()
+t_to_d(D.t.test.t2$statistic, D.t.test.t2$parameter)
+sd(allds$qIATSC_t2, na.rm = T)
+interpret_d(-1.31)
+
+D.t.test.t12 <- t.test(allds$qIATSC_t1,allds$qIATSC_t2, paired = T)
+D.t.test.t12 %>% parameters()
+t_to_d(D.t.test.t12$statistic, D.t.test.t12$parameter)
+
+```
+
+
+```{r, results='asis', include=includePrev}
+## Correlation Analyses aggregated
+
+corx(allds_agg %>%
+  select(SC_qIAT,FSCRS_HS, FSCRS_RS, FSCRS_IS,CESD,BSI_Depression,BSI_global,SE_qIAT,RSES, self_bash, unreal_expt),
+  triangle = "lower",
+  stars = c(0.05, 0.01, 0.001)) %>%
+  extract2("apa") %T>%
+  copy_to_clipboard() %>% 
+  papaja::apa_table(caption = "Correlations of Questionnaire Scores",
+                    note = "* p < 0.05; ** p < 0.01; *** p < 0.001",
+                    escape = F) %>%
+  {.}
+
+```
+
+```{r, results='asis', include=includePrev}
+## Correlation Analyses crosstime
+corx(allds_agg %>% select(
+    qIATSC_t1,
+    qIATSC_t2,
+    fscrsHS_t1, 
+    fscrsHS_t2, 
+    fscrsRS_t1, 
+    fscrsRS_t2, 
+    fscrsIS_t1, 
+    fscrsIS_t2,
+    cesd_t1,
+    cesd_t2,
+    bsi.Depression_t1,
+    bsi.Depression_t2,
+    bsi.general_t1,
+    bsi.general_t2, 
+    qIATSE_t1,
+    qIATSE_t2,
+    rses_t1,
+    rses_t2,
+  ),
+  x = ends_with("t1"),
+  y = ends_with("t2"),
+  stars = c(0.05, 0.01, 0.001)) %T>%
+  copy_to_clipboard() %>% 
+  extract2("apa") %>%
+  papaja::apa_table(caption = "Correlations of Questionnaire Scores",
+                    note = "* p < 0.05; ** p < 0.01; *** p < 0.001",
+                    escape = F) %>%
+  {.}
+```
+
+```{r, results='asis', include=includePrev}
+## Correlation Analyses time 1
+corx(allds_agg %>% select(
+    qIATSC_t1,
+    qIATSC_t2,
+    fscrsHS_t1, 
+    fscrsHS_t2, 
+    fscrsRS_t1, 
+    fscrsRS_t2, 
+    fscrsIS_t1, 
+    fscrsIS_t2,
+    cesd_t1,
+    cesd_t2,
+    bsi.Depression_t1,
+    bsi.Depression_t2,
+    bsi.general_t1,
+    bsi.general_t2, 
+    qIATSE_t1,
+    qIATSE_t2,
+    rses_t1,
+    rses_t2,
+    self_bash_t1 = self_bash, #just to include it in the table
+    unreal_expt_t1 = unreal_expt #just to include it in the table
+  ),
+  x = ends_with("t1"),
+  y = ends_with("t1"),
+  stars = c(0.05, 0.01, 0.001),
+  triangle = "lower") %T>%
+  copy_to_clipboard() %>% 
+  extract2("apa") %>%
+  papaja::apa_table(caption = "Correlations of Questionnaire Scores",
+                    note = "* p < 0.05; ** p < 0.01; *** p < 0.001",
+                    escape = F) %>%
+  {.}
+```
+
+```{r, results='asis', include=includePrev}
+## Correlation Analyses time 2
+corx(allds_agg %>% select(
+    qIATSC_t1,
+    qIATSC_t2,
+    fscrsHS_t1, 
+    fscrsHS_t2, 
+    fscrsRS_t1, 
+    fscrsRS_t2, 
+    fscrsIS_t1, 
+    fscrsIS_t2,
+    cesd_t1,
+    cesd_t2,
+    bsi.Depression_t1,
+    bsi.Depression_t2,
+    bsi.general_t1,
+    bsi.general_t2, 
+    qIATSE_t1,
+    qIATSE_t2,
+    rses_t1,
+    rses_t2,
+    self_bash_t2 = self_bash, #just to include it in the table
+    unreal_expt_t2 = unreal_expt #just to include it in the table
+  ),
+  x = ends_with("t2"),
+  y = ends_with("t2"),
+  stars = c(0.05, 0.01, 0.001)) %T>%
+  copy_to_clipboard() %>% 
+  extract2("apa") %>%
+  papaja::apa_table(caption = "Correlations of Questionnaire Scores",
+                    note = "* p < 0.05; ** p < 0.01; *** p < 0.001",
+                    escape = F) %>%
+  {.}
+```
+
+
+
+```{r}
+allds_agg %$% 
+  cor.test(self_bash,bsi.Depression_t1) %>% parameters()
+allds_agg %$% 
+  cor.test(self_bash,bsi.Depression_t2) %>% parameters()
+allds_agg %$% 
+  cor.test(self_bash,BSI_Depression) %>% parameters()
+
+allds_agg %$% 
+  cor.test(self_bash,qIATSC_t1) %>% parameters()
+allds_agg %$% 
+  cor.test(self_bash,qIATSC_t2) %>% parameters()
+allds_agg %$% 
+  cor.test(self_bash,SC_qIAT) %>% parameters()
+  
+allds_agg %$% 
+  cor.test(unreal_expt,rses_t1) %>% parameters()
+allds_agg %$% 
+  cor.test(unreal_expt,rses_t2) %>% parameters()
+allds_agg %$% 
+  cor.test(unreal_expt,RSES) %>% parameters()
+
+```
+
+
+
+```{r}
+
+alphas <- list(
+  qIATSC= mean(qIATSC_cron_T1,qIATSC_cron_T2),
+  rses= mean(rses_cron_T1,rses_cron_T2),
+  qIATSE= mean(qIATSE_cron_T1,qIATSE_cron_T2),
+  fscrsHS= mean(fscrsHS_cron_T1,fscrsHS_cron_T2),
+  fscrsIS= mean(fscrsIS_cron_T1,fscrsIS_cron_T2),
+  fscrsRS= mean(fscrsRS_cron_T1,fscrsRS_cron_T2),
+  self_bash = self_bash_cron,
+  unreal_expt = unreal_expt_cron
+)
+  
+allds_agg %$% psych::correct.cor(cor(matrix(c(SC_qIAT, RSES),ncol = 2), use = "pairwise"), c(alphas[["qIATSC"]],alphas[["rses"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(self_bash, RSES),ncol = 2), use = "pairwise"), c(alphas[["self_bash"]],alphas[["rses"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(unreal_expt, RSES),ncol = 2), use = "pairwise"), c(alphas[["unreal_expt"]],alphas[["rses"]]))[1,2]
+
+allds_agg %$% psych::correct.cor(cor(matrix(c(SC_qIAT,SE_qIAT),ncol = 2), use = "pairwise"),c(alphas[["qIATSC"]],alphas[["qIATSE"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(self_bash, SE_qIAT),ncol = 2), use = "pairwise"), c(alphas[["self_bash"]],alphas[["qIATSE"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(unreal_expt, SE_qIAT),ncol = 2), use = "pairwise"), c(alphas[["unreal_expt"]],alphas[["qIATSE"]]))[1,2]
+
+
+allds_agg %$% psych::correct.cor(cor(matrix(c(FSCRS_HS,SE_qIAT),ncol = 2), use = "pairwise"),c(alphas[["fscrsHS"]],alphas[["qIATSE"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(FSCRS_IS,SE_qIAT),ncol = 2), use = "pairwise"),c(alphas[["fscrsIS"]],alphas[["qIATSE"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(FSCRS_RS,SE_qIAT),ncol = 2), use = "pairwise"),c(alphas[["fscrsRS"]],alphas[["qIATSE"]]))[1,2]
+
+allds_agg %$% psych::correct.cor(cor(matrix(c(FSCRS_HS,RSES),ncol = 2), use = "pairwise"),c(alphas[["fscrsHS"]],alphas[["rses"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(FSCRS_IS,RSES),ncol = 2), use = "pairwise"),c(alphas[["fscrsIS"]],alphas[["rses"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(FSCRS_RS,RSES),ncol = 2), use = "pairwise"),c(alphas[["fscrsRS"]],alphas[["rses"]]))[1,2]
+
+allds_agg %$% psych::correct.cor(cor(matrix(c(FSCRS_HS,FSCRS_IS),ncol = 2), use = "pairwise"),c(alphas[["fscrsHS"]],alphas[["fscrsIS"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(FSCRS_HS,FSCRS_RS),ncol = 2), use = "pairwise"),c(alphas[["fscrsHS"]],alphas[["fscrsRS"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(FSCRS_IS,FSCRS_RS),ncol = 2), use = "pairwise"),c(alphas[["fscrsIS"]],alphas[["fscrsRS"]]))[1,2]
+
+allds_agg %$% psych::correct.cor(cor(matrix(c(SC_qIAT,FSCRS_IS),ncol = 2), use = "pairwise"),c(alphas[["qIATSC"]],alphas[["fscrsIS"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(SC_qIAT,FSCRS_HS),ncol = 2), use = "pairwise"),c(alphas[["qIATSC"]],alphas[["fscrsHS"]]))[1,2]
+allds_agg %$% psych::correct.cor(cor(matrix(c(SC_qIAT,FSCRS_RS),ncol = 2), use = "pairwise"),c(alphas[["qIATSC"]],alphas[["fscrsRS"]]))[1,2]
+
+allds_agg %$% psych::correct.cor(cor(matrix(c(SE_qIAT, RSES),ncol = 2), use = "pairwise"), c(alphas[["qIATSE"]],alphas[["rses"]]))[1,2]
+
+```
+
+
+```{r, include=F, eval=F}
+reg_xls_qIAT <- function(SC){
+  SC2 <- allds_computed_scl[[SC]]
+  fit1 <- lm(data = allds_computed_scl , BSI_global ~ SC_qIAT * SC2) 
+  fit2 <- lm(data = allds_computed_scl , BSI_Depression ~ SC_qIAT * SC2) 
+  fit3 <- lm(data = allds_computed_scl , CESD ~ SC_qIAT * SC2) 
+  # allds_computed_scl %>% names
+  list(fit1 = parameters(fit1),
+       fit2 = parameters(fit2),
+       fit3 = parameters(fit3),
+       fits = export_summs(fit1,fit2,fit3,
+                       model.names = c("BSI Global", "BSI Dep", "CES-D"),
+                       to.file = "xlsx", file.name = paste0("tables/lm_",SC,"_qIAT.xlsx")
+                     )
+  )
+}
+```
+
+```{r}
+reg_xls_qIAT("FSCRS_HS")
+reg_xls_qIAT("FSCRS_IS")
+reg_xls_qIAT("FSCRS_RS")
+```
+
+
+```{r}
+reg_xls_SCB <- function(SC){
+  SC2 <- allds_computed_scl[[SC]]
+  fit1 <- lm(data = allds_computed_scl , BSI_global ~ self_bash * unreal_expt * SC2) 
+  fit2 <- lm(data = allds_computed_scl , BSI_Depression ~ self_bash * unreal_expt * SC2) 
+  fit3 <- lm(data = allds_computed_scl , CESD ~ self_bash * unreal_expt * SC2) 
+  # allds_computed_scl %>% names
+  list(fit1 = parameters(fit1),
+       fit2 = parameters(fit2),
+       fit3 = parameters(fit3),
+       fits = export_summs(fit1,fit2,fit3,
+                       model.names = c("BSI Global", "BSI Dep", "CES-D"),
+                       to.file = "xlsx", file.name = paste0("tables/lm_",SC,"_SCB.xlsx")
+                     )
+  )
+}
+```
+
+
+```{r}
+reg_xls_SCB("FSCRS_HS")
+reg_xls_SCB("FSCRS_IS")
+reg_xls_SCB("FSCRS_RS")
+```
+
+
+
+```{r unrealInteraction, eval=F}
+fit1 <- lm(data = allds_computed_scl , BSI_global ~ self_bash * unreal_expt * FSCRS_IS) 
+fit2 <- lm(data = allds_computed_scl , BSI_Depression ~ self_bash * unreal_expt * FSCRS_IS) 
+fit3 <- lm(data = allds_computed_scl , CESD ~ self_bash * unreal_expt * FSCRS_IS) 
+fit4 <- lm(data = allds_computed_scl , CESD ~ self_bash * unreal_expt * FSCRS_RS) 
+  
+p1 <- interact_plot(fit1,modx = "FSCRS_IS",pred = "unreal_expt", x.label = "Unrealistic Expectations" , y.label = "BSI Gloabl (z Score)", legend.main = "FSCRS IS", colors = "Greys", main.title = "Simple Slopes", modx.values = "plus-minus") + papaja::theme_apa() + ylim(c(-2,2))
+simslp <- sim_slopes(fit1,modx = "FSCRS_IS",pred = "unreal_expt", jnplot = T, sig.color = "black", insig.color = "grey", title = "Johnson-Neyman", modx.values = "plus-minus")
+s1 <- simslp$jnplot + labs(y = "Slope of Unrealisitc Expectations" , x = "FSCRS IS (z Score)") + papaja::theme_apa() + theme(legend.title = element_blank())
+simslp$slopes
+
+p2 <- interact_plot(fit2,modx = "FSCRS_IS",pred = "unreal_expt", x.label = "Unrealistic Expectations" , y.label = "BSI Depression (z Score)", legend.main = "FSCRS IS", colors = "Greys", main.title = "Simple Slopes", modx.values = "plus-minus") + papaja::theme_apa() + ylim(c(-2,2))
+simslp <- sim_slopes(fit2,modx = "FSCRS_IS",pred = "unreal_expt", jnplot = T, sig.color = "black", insig.color = "grey", title = "Johnson-Neyman", modx.values = "plus-minus")
+s2 <- simslp$jnplot + labs(y = "Slope of Unrealisitc Expectations" , x = "FSCRS IS (z Score)") + papaja::theme_apa() + theme(legend.title = element_blank())
+simslp$slopes
+
+p3 <- interact_plot(fit3,modx = "FSCRS_IS",pred = "unreal_expt", x.label = "Unrealistic Expectations" , y.label = "CES-D (z Score)", legend.main = "FSCRS IS", colors = "Greys", main.title = "Simple Slopes", modx.values = "plus-minus") + papaja::theme_apa() + ylim(c(-2,2))
+simslp <- sim_slopes(fit3,modx = "FSCRS_IS",pred = "unreal_expt", jnplot = T, sig.color = "black", insig.color = "grey", title = "Johnson-Neyman", modx.values = "plus-minus")
+s3 <- simslp$jnplot + labs(y = "Slope of Unrealisitc Expectations" , x = "FSCRS IS (z Score)") + papaja::theme_apa() + theme(legend.title = element_blank())
+simslp$slopes
+
+p4 <- interact_plot(fit4,modx = "FSCRS_RS",pred = "unreal_expt", x.label = "Unrealistic Expectations" , y.label = "CES-D (z Score)", legend.main = "FSCRS RS", colors = "Greys", main.title = "Simple Slopes", modx.values = "plus-minus") + papaja::theme_apa() + ylim(c(-2,2))
+simslp <- sim_slopes(fit4,modx = "FSCRS_RS",pred = "unreal_expt", jnplot = T, sig.color = "black", insig.color = "grey", title = "Johnson-Neyman", modx.values = "plus-minus")
+s4 <- simslp$jnplot + labs(y = "Slope of Unrealisitc Expectations" , x = "FSCRS RS (z Score)") + papaja::theme_apa() + theme(legend.title = element_blank())
+simslp$slopes
+
+ggsave(p1 + s1 + plot_annotation(tag_levels = 'A') + plot_layout(design = "AA##BB") , filename = "figures/figure1.png", width = 9.8, height = 5.2, units = "in")
+ggsave(p2 + s2 + plot_annotation(tag_levels = 'A') + plot_layout(design = "AA##BB") , filename = "figures/figure2.png", width = 9.8, height = 5.2, units = "in")
+ggsave(p3 + s3 + plot_annotation(tag_levels = 'A') + plot_layout(design = "AA##BB") , filename = "figures/figure3.png", width = 9.8, height = 5.2, units = "in")
+ggsave(p4 + s4 + plot_annotation(tag_levels = 'A') + plot_layout(design = "AA##BB") , filename = "figures/figure4.png", width = 9.8, height = 5.2, units = "in")
+```
+
+
+```{r}
+  fit1 <- lm(data = allds_computed_scl , BSI_global ~ self_bash * unreal_expt * SC_qIAT) 
+  fit2 <- lm(data = allds_computed_scl , BSI_Depression ~ self_bash * unreal_expt * SC_qIAT) 
+  fit3 <- lm(data = allds_computed_scl , CESD ~ self_bash * unreal_expt * SC_qIAT) 
+  # allds_computed_scl %>% names
+  parameters(fit1)
+  parameters(fit2)
+  parameters(fit3)
+  
+  export_summs(fit1,fit2,fit3,
+                       model.names = c("BSI Global", "BSI Dep", "CES-D"),
+                       to.file = "xlsx", file.name = paste0("tables/lm_SCqIAT_SCB.xlsx")
+                     )
+```
+
+
+
+
+
+```{r, include=includePrev}
+# these include the Order, in case that made any difference. it did not.
+fit1 <- lme4::lmer(value ~  order + degree + type * FSCRS_HS + (1|part1id), data = social_comparison_df) 
+fit1_lmTst <- lmerTest::lmer(value ~  FSCRS_HS * type  + order + degree + (1|part1id), data = social_comparison_df) 
+SC <- fit1@call[["formula"]][[3]][[2]][[3]][[3]] %>% as.character()
+probe_interaction(fit1_lmTst, pred = !!SC, modx="type")
+
+fit2 <- lme4::lmer(value ~  order + degree + type * FSCRS_IS + (1|part1id), data = social_comparison_df) 
+fit2_lmTst <- lmerTest::lmer(value ~  FSCRS_IS * type  + order + degree + (1|part1id), data = social_comparison_df) 
+SC <- fit2@call[["formula"]][[3]][[2]][[3]][[3]] %>% as.character()
+probe_interaction(fit2_lmTst, pred = !!SC, modx="type")
+
+fit3 <- lme4::lmer(value ~  order + degree + type * FSCRS_RS + (1|part1id), data = social_comparison_df) 
+fit3_lmTst <- lmerTest::lmer(value ~  FSCRS_RS * type  + order + degree + (1|part1id), data = social_comparison_df) 
+SC <- fit3@call[["formula"]][[3]][[2]][[3]][[3]] %>% as.character()
+probe_interaction(fit3_lmTst, pred = !!SC, modx="type")
+
+fit4 <- lme4::lmer(value ~  order + degree + type * SC_qIAT + (1|part1id), data = social_comparison_df) 
+fit4_lmTst <- lmerTest::lmer(value ~  SC_qIAT * type  + order + degree + (1|part1id), data = social_comparison_df) 
+SC <- fit4@call[["formula"]][[3]][[2]][[3]][[3]] %>% as.character()
+probe_interaction(fit4_lmTst, pred = !!SC, modx="type")
+
+fit5 <- lme4::lmer(value ~  order + degree + type * self_bash + (1|part1id), data = social_comparison_df) 
+fit5_lmTst <- lmerTest::lmer(value ~  self_bash * type  + order + degree + (1|part1id), data = social_comparison_df) 
+SC <- fit5@call[["formula"]][[3]][[2]][[3]][[3]] %>% as.character()
+probe_interaction(fit5_lmTst, pred = !!SC, modx="type")
+
+fit6 <- lme4::lmer(value ~  order + degree + type * unreal_expt + (1|part1id), data = social_comparison_df) 
+fit6_lmTst <- lmerTest::lmer(value ~  unreal_expt * type  + order + degree + (1|part1id), data = social_comparison_df) 
+SC <- fit6@call[["formula"]][[3]][[2]][[3]][[3]] %>% as.character()
+probe_interaction(fit6_lmTst, pred = !!SC, modx="type")
+
+```
+
+
+
+```{r}
+parameters(fit1, details = T)
+parameters(fit2, details = T)
+parameters(fit3, details = T)
+parameters(fit4, details = T)
+parameters(fit5, details = T)
+parameters(fit6, details = T)
+
+
+export_summs(fit1,fit2,fit3,fit4,fit5,fit6,
+                       model.names = c("FSCRS HS", "FSCRS IS", "FSCRS RS","SC-qIAT","Self-Bashing","Unreal Expt"),
+                       to.file = "xlsx", file.name = paste0("tables/lm_social_comp_SCB.xlsx"),
+             scale = T,
+  transform.response = T
+                     )
+```
+
