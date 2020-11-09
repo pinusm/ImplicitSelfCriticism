@@ -1,4 +1,4 @@
-# The raw data to run this script we redacted due to deidentification. 
+# The raw data to run this script was redacted due to deidentification. 
 # Use the deidentified data in the 'data' folder.
 # Contact Michael Pinus at pinusm@post.bgu.ac.il for the original data.
 
