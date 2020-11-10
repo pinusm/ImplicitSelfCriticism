@@ -1,0 +1,17 @@
+<Study id="pinus.ybalab.qiat.sc2" datagroup="research">
+ 
+	<Definitions>
+        <Task id="pimgr" file="mgr.js">/common/all/js/quest/0.0/dist/manager.jsp</Task>
+        <Task id="dummy">mgr.js</Task>
+	</Definitions>
+
+	<Map>
+		<Task id="pimgr"/>
+		<Task id="dummy"/>
+	</Map>
+</Study>
+
+
+
+
+

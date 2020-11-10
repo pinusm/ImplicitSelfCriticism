@@ -1,0 +1,89 @@
+<% 
+	var catA = 'Disappointing';
+	var catB = 'Satisfactory';
+    var trait = 'self-criticism';
+	var capTrait = 'Self-Criticism';
+%>
+
+<p>
+    Thank you for participating! 
+    The sorting test you just took is called the Implicit Association Task (IAT). 
+    You categorized 'Self' and 'Not-Self' words with words related to '<%=catA%>' and '<%=catB%>'.
+</p>
+
+<b>Here is your result:</b><br/>
+
+<div class="result" style="background-color:lightyellow">
+	<b><%= showFeedback() %></b>
+</div>
+
+<p><b>Disclaimer:</b><br/>
+    These results are not a definitive assessment of your implicit association.
+    The results may be influenced by variables related to the test (e.g., the category labels or particular items used to represent the categories on the IAT) or the person (e.g., how tired you are). 
+    The results are provided for educational purposes only.
+</p>
+
+<p><b>How Does The IAT Work?</b></p>
+<p>
+    The IAT measures the strength of associations between concepts (e.g., 'Self', 'Not-Self') and attributes (e.g., '<%=catA%>', '<%=catB%>').
+    The main idea is that making a response is easier when closely related items share the same response key.
+    We would say that one associated implicitly with '<%=catA%>' relative to '<%=catB%>' if they are faster to categorize words when 'Self' and '<%=catA%>' share a response key relative to when 'Self' and '<%=catB%>' share a response key. 
+    Any single IAT is unlikely to predict behavior well for a specific individual, or be a very precise assessment of their personality traits.
+</p>
+
+<p>
+    The mood questionaire you took is a modified version of a questionnaire called The Center for Epidemiological Studies Depression Scale (CESD).
+    The CESD is commonly used to assess depressive symptoms and psychological distress.
+</p>
+
+<div class="result" style="background-color:lightyellow">
+    <p><b>Your CESD score was <%= global.cesdScore %>.</b></p>
+</div>
+
+<p>
+    Previous research suggested a score of 4 as the cut-off point for clinical depression.
+    Thus, an individual with a score of 4 and above is <i>more likely</i> to suffer depression, compared to an individual with a score below 4.
+</p>
+
+<p><b>Disclaimer:</b><br/>
+    These results are not a medical diagnosis! <br/>
+    <b>In any case you feel you are in an emotional crisis,</b> having 'dark thoughts', or if you simply feel you need to talk to someone, we recommend you visit <a href="http://www.crisischat.org/">CrisisChat (US)</a>, or <a href="http://unsuicide.wikispaces.com">unsuicide (Global)</a>, where you could find assistance 24/7.
+    However, web services are not a substitute for local emergency health care.
+    Go to a hospital when necessary, and seek professional advice.
+</p>
+
+<p><b>What Was This Study About?</b></p>
+<p>
+    In this study you took a questionnaire and an implicit task, presumably assessing the same personality trait, <%=capTrait%>.
+    This study aims to test the IAT's ability to reliably assess personality traits.
+    We focus specifically on <%=trait%>, as previous research showed it is a good predictor of depressive symptoms and other mental and physical health conditions, and that people's implicit assessment of their <%=trait%> varies greatly from their self-reported accounts. We hope to better understand this variation, and improve the methods currently being used to assess personality traits, and predict psychological distress.
+</p>
+
+<p><b>Does The Order In Which I Took The IAT Matter?</b></p>
+<p>
+    Yes, the order in which you take the IAT can influence your overall results.
+    But, the effect is very small.
+    So if you first pair 'Self' + '<%=catA%>' / 'Not-Self' + '<%=catB%>' and then pair 'Not-Self' + '<%=catA%>' / 'Self' + '<%=catB%>', your results might be just a tiny bit different than they would be if you had done the reverse pairing first.
+    <br/>To minimize the order effect in the IAT, we give more practice trials before the second pairing than we did before the first pairing. 
+    We also randomly assign participants to one of the two possible orderings, so half of the test-takers complete 'Self' + '<%=catA%>' / 'Not-Self' + '<%=catB%>' and then 'Not-Self' + '<%=catA%>' / 'Self' + '<%=catB%>', and the other half get the opposite order.
+</p>
+
+<p><b>I Still Have Questions About The Study.</b></p>
+<p>
+    If you have questions about the IAT, please check out our <a href="/implicit/faqs.html">Frequently Asked Questions (FAQ)</a>.
+    If you have any questions or comments about the study, please email the lead investigator Michael Pinus <a href="mailto:pinusm@post.bgu.ac.il">(pinusm@post.bgu.ac.il)</a>.
+</p>
+
+<p><b>Your Participation And Financial Support Are Important!</b></p>
+<p>
+    Thank you again for participating in this research!
+    We have learned so much from people like you taking the time to be part of our work. 
+    If you have time, please consider taking another test by clicking the button below.
+</p>
+<p>
+    As a non-profit organization, we would also appreciate your financial support. 
+    Since establishment in 2005, we have educated more than a million visitors each year about implicit biases concerning race, gender, sexual orientation, and other topics.
+    Your donation supports Project Implicit's educational, scientific, and public service missions.
+</p> 
+
+

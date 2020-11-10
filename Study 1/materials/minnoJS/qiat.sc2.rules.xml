@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE ruleset PUBLIC "dtd/SRML-simpleRules.dtd" "../dtd/SRML-simpleRules.dtd">
+<ruleset name="">
+    <rule name="">
+        <conditionPart>
+            <simpleCondition className="Demographics">
+                <naryExp operator="and">
+                    <binaryExp operator="neq">
+                        <field name="pinus.ybalab.qiat.sc1" />
+                        <constant type="string" value="i" />
+                    </binaryExp>
+                    <binaryExp operator="neq">
+                        <field name="pinus.ybalab.qiat.sc1" />
+                        <constant type="string" value="c" />
+                    </binaryExp>
+                </naryExp>
+            </simpleCondition>
+        </conditionPart>
+        <actionPart>
+            <assignment>
+                <variable name="odds" />
+                <constant type="int" value="26" />
+            </assignment>
+        </actionPart>
+    </rule>
+</ruleset>
