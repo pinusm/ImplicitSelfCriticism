@@ -1,6 +1,6 @@
 ---
 title: "The Self Criticism Relational Response Task (RRT-SC) – Validation of an Indirect Measure of Self-Criticism"
-shorttitle: "RRTSC2 - Study Summary"
+shorttitle: "Study 4 - Study Summary"
 author: 
   - name:  Michael Pinus
     affiliation: 1

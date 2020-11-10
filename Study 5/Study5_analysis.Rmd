@@ -1,6 +1,6 @@
 ---
-title             : "Identifying a State Self-Criticism Sub-scale in the Brief Symptoms Inventory."
-shorttitle        : "BSI Self-Criticism Sub-scale"
+title: "The Self Reported Experiences - Self-Criticism (SRE-SC) – Validation of an Indirect Measure of Self-Criticism"
+shorttitle: "Study 5 - Study Summary"
 author: 
   - name          : "Michael Pinus"
     affiliation   : "1"

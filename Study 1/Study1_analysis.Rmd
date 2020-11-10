@@ -1,5 +1,5 @@
 ---
-title: "The Self Criticism /IAT – Validation of an Indirect Measure of Self-Criticism"
+title: "The Self Criticism q/IAT – Validation of Two Indirect Measure of Self-Criticism"
 shorttitle: "Study 1 - Study Summary"
 author: 
   - name:  Michael Pinus

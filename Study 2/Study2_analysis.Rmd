@@ -1,6 +1,7 @@
 ---
-title: "The Self Criticism qIAT and SC-B – Validation of Indirect Measures of Self-Criticism"
-shorttitle: "SC-B - Study Summary"
+title: "The Self-Criticism qIAT and Behavioral Self-Criticism – Validation of Indirect Measures of Self-Criticism"
+shorttitle: "Study 2 - Study Summary"
+
 author: 
   - name:  Michael Pinus
     affiliation: 1
